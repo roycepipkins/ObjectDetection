@@ -95,7 +95,11 @@ int PersonDetection::main(const std::vector<std::string>& args)
 
     for (;;)
     {
-        capture >> big_frame;
+        //10 FPS on the tire theft movie. Lets try 2 frames.
+        for(int s = 0; s < 5; ++s)
+            capture >> big_frame;
+
+
         if (big_frame.empty())
         {
             cout << "Finished reading: empty frame" << endl;
