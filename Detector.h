@@ -3,9 +3,11 @@
 #include <Poco/Logger.h>
 #include <Poco/Runnable.h>
 #include <Poco/Thread.h>
+#include <Poco/BasicEvent.h>
 #include <Poco/Util/ConfigurationView.h>
 
 #include "FrameRateLimiter.h"
+#include "Detection.h"
 
 #include <opencv2/dnn.hpp>
 
@@ -16,9 +18,12 @@ class Detector : public Poco::Runnable
 public:
 	Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco::Util::AbstractConfiguration> config);
 	virtual ~Detector();
+
+	void start();
 	void run();
 	void stop();
 
+	Poco::BasicEvent<std::vector<Detection>> detectionEvent;
 
 private:
 	std::string src_name;

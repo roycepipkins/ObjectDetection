@@ -22,8 +22,8 @@ Detector::Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco:
 	),
 	isInteractive(showWindows),
 	analysis_size(cv::Size(320, 320)),
-	confidence_threshold(config->getDouble("yolo.confidence_threshold", 0.35)),
-	nms_threshold(config->getDouble("nms_threshold", 0.3)),
+	confidence_threshold((float)config->getDouble("yolo.confidence_threshold", 0.35)),
+	nms_threshold((float)config->getDouble("nms_threshold", 0.3)),
 	want_to_stop(false)
 {
 	Poco::Path yolo_config_path(config->getString("application.dir"));
@@ -59,12 +59,17 @@ Detector::Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco:
 			analysis_size = cv::Size(608, 608);
 	}
 
-	detector_thread.start(*this);
+	
 }
 
 Detector::~Detector()
 {
 	stop();
+}
+
+void Detector::start()
+{
+	detector_thread.start(*this);
 }
 
 void Detector::stop()
@@ -100,14 +105,19 @@ void Detector::run()
 	using namespace cv;
 	try
 	{
+		vector<Detection> detections;
+
 		if (isInteractive)
 		{
-			//cv::namedWindow(src_name, cv::WINDOW_AUTOSIZE);
+			cv::namedWindow(src_name, cv::WINDOW_AUTOSIZE);
 		}
 
+		
 
 		while (!want_to_stop)
 		{
+			detections.clear();
+
 			cv::Mat frame = vidSrc.GetNextFrame();
 			
 			vector<vector<Mat>> outputs;
@@ -193,23 +203,72 @@ void Detector::run()
 			classIds = nmsClassIds;
 			confidences = nmsConfidences;
 
-			if (isInteractive)
+			
+
+			for (size_t idx = 0; idx < boxes.size(); ++idx)
 			{
-				for (size_t idx = 0; idx < boxes.size(); ++idx)
+				Detection detection;
+				detection.bounding_box = boxes[idx];
+				detection.confidence = confidences[idx];
+				detection.detection_class = classIds[idx];
+				detection.frame = frame;
+				detection.src_name = src_name;
+				detections.push_back(detection);
+
+				if (isInteractive)
 				{
 					Rect box = boxes[idx];
 					drawPred(classIds[idx], confidences[idx], box.x, box.y,
 						box.x + box.width, box.y + box.height, frame);
 				}
+			}
 
+			detectionEvent.notify(this, detections);
+
+			if (isInteractive)
+			{
 				cv::imshow(src_name, frame);
 				waitKey(1);
 			}
+			
+			
 			
 
 
 			//TODO you need to emit these detection to another part of the system
 			//TODO so they can be sent to MQTT, URL, or whatever.
+			//TODO THIS is a decent spot for a Poco Event or Poco Notification
+			//TODO you now need a scheme for defining event responders in your properties file
+
+			//All the event types can be represented by a container of pairs<class id/name, geometry>
+
+
+			//Types of events
+			//class detection true/false
+			//class instance detection count (integer)
+			//class detection geometery. (bounding box + center)
+
+			//POSSIBLE types of transports
+			//**mqtt
+			
+			//**Web client
+			//	GET URL (maybe no dectection info but optionally some URL vars)
+			//	POST URL (event info as JSON)
+			//	REST POST where I define most of the URL
+
+			//**web server
+			//	REST server where the most recent detection can be queries
+			//	generic server that returns a JSON block with everything.
+
+			//mqtt.broker
+			//mqtt.user
+			//mqtt.password
+			//mqtt.ssl
+			//mqtt.topic_prefix
+			//should the body just be JSON w/ data
+			//prolly one
+			//but may another with just the detection count and class in topic
+
 			
 		}
 	}

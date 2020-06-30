@@ -128,7 +128,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\poco-1.10.1\Foundation\include;..\poco-1.10.1\Util\include;..\poco-1.10.1\XML\include;..\poco-1.10.1\Json\include;..\opencv\build\install\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\poco-1.10.1\Foundation\include;..\poco-1.10.1\Util\include;..\poco-1.10.1\XML\include;..\poco-1.10.1\Json\include;..\poco-1.10.1\Net\include;..\opencv\build\install\include;..\paho.mqtt.c\src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -136,8 +136,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\poco-1.10.1\build\lib\Debug;..\opencv\build\install\x64\vc16\staticlib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Iphlpapi.lib;IlmImfd.lib;ippiwd.lib;ittnotifyd.lib;libjasperd.lib;libjpeg-turbod.lib;libpngd.lib;libprotobufd.lib;libtiffd.lib;libwebpd.lib;opencv_calib3d430d.lib;opencv_core430d.lib;opencv_dnn430d.lib;opencv_features2d430d.lib;opencv_flann430d.lib;opencv_gapi430d.lib;opencv_highgui430d.lib;opencv_imgcodecs430d.lib;opencv_imgproc430d.lib;opencv_ml430d.lib;opencv_objdetect430d.lib;opencv_photo430d.lib;opencv_stitching430d.lib;opencv_video430d.lib;opencv_videoio430d.lib;quircd.lib;zlibd.lib;ippicvmt.lib;ade.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\poco-1.10.1\build\lib\Debug;..\opencv\build\install\x64\vc16\staticlib;..\paho.mqtt.c\build\src\Debug\</AdditionalLibraryDirectories>
+      <AdditionalDependencies>paho-mqtt3c-static.lib;Ws2_32.lib;Iphlpapi.lib;IlmImfd.lib;ippiwd.lib;ittnotifyd.lib;libjasperd.lib;libjpeg-turbod.lib;libpngd.lib;libprotobufd.lib;libtiffd.lib;libwebpd.lib;opencv_calib3d430d.lib;opencv_core430d.lib;opencv_dnn430d.lib;opencv_features2d430d.lib;opencv_flann430d.lib;opencv_gapi430d.lib;opencv_highgui430d.lib;opencv_imgcodecs430d.lib;opencv_imgproc430d.lib;opencv_ml430d.lib;opencv_objdetect430d.lib;opencv_photo430d.lib;opencv_stitching430d.lib;opencv_video430d.lib;opencv_videoio430d.lib;quircd.lib;zlibd.lib;ippicvmt.lib;ade.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -148,7 +148,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>..\poco-1.10.1\Foundation\include;..\poco-1.10.1\Util\include;..\poco-1.10.1\XML\include;..\poco-1.10.1\Json\include;..\opencv\build\install\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>..\poco-1.10.1\Foundation\include;..\poco-1.10.1\Util\include;..\poco-1.10.1\XML\include;..\poco-1.10.1\Json\include;..\poco-1.10.1\Net\include;..\opencv\build\install\include;..\paho.mqtt.c\src</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
@@ -158,19 +158,31 @@
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\poco-1.10.1\build\lib\Release;..\opencv\build\install\x64\vc16\staticlib</AdditionalLibraryDirectories>
-      <AdditionalDependencies>Iphlpapi.lib;IlmImf.lib;ippiw.lib;ittnotify.lib;libjasper.lib;libjpeg-turbo.lib;libpng.lib;libprotobuf.lib;libtiff.lib;libwebp.lib;opencv_calib3d430.lib;opencv_core430.lib;opencv_dnn430.lib;opencv_features2d430.lib;opencv_flann430.lib;opencv_gapi430.lib;opencv_highgui430.lib;opencv_imgcodecs430.lib;opencv_imgproc430.lib;opencv_ml430.lib;opencv_objdetect430.lib;opencv_photo430.lib;opencv_stitching430.lib;opencv_video430.lib;opencv_videoio430.lib;quirc.lib;zlib.lib;ippicvmt.lib;ade.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\poco-1.10.1\build\lib\Release;..\opencv\build\install\x64\vc16\staticlib;..\paho.mqtt.c\build\src\Release</AdditionalLibraryDirectories>
+      <AdditionalDependencies>paho-mqtt3c-static.lib;Ws2_32.lib;Iphlpapi.lib;IlmImf.lib;ippiw.lib;ittnotify.lib;libjasper.lib;libjpeg-turbo.lib;libpng.lib;libprotobuf.lib;libtiff.lib;libwebp.lib;opencv_calib3d430.lib;opencv_core430.lib;opencv_dnn430.lib;opencv_features2d430.lib;opencv_flann430.lib;opencv_gapi430.lib;opencv_highgui430.lib;opencv_imgcodecs430.lib;opencv_imgproc430.lib;opencv_ml430.lib;opencv_objdetect430.lib;opencv_photo430.lib;opencv_stitching430.lib;opencv_video430.lib;opencv_videoio430.lib;quirc.lib;zlib.lib;ippicvmt.lib;ade.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Detector.cpp" />
+    <ClCompile Include="EventFilter.cpp" />
     <ClCompile Include="FrameRateLimiter.cpp" />
+    <ClCompile Include="jsoncpp.cpp" />
+    <ClCompile Include="MqttEmitter.cpp" />
     <ClCompile Include="PersonDetection.cpp" />
+    <ClCompile Include="StringFilter.cpp" />
+    <ClCompile Include="ThreadedDetectionProcessor.cpp" />
+    <ClCompile Include="URLEmitter.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Detection.h" />
     <ClInclude Include="Detector.h" />
+    <ClInclude Include="EventFilter.h" />
     <ClInclude Include="FrameRateLimiter.h" />
+    <ClInclude Include="MqttEmitter.h" />
     <ClInclude Include="PersonDetection.h" />
+    <ClInclude Include="StringFilter.h" />
+    <ClInclude Include="ThreadedDetectionProcessor.h" />
+    <ClInclude Include="URLEmitter.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
