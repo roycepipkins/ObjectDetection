@@ -1,4 +1,4 @@
-#include "PersonDetection.h"
+#include "ObjectDetection.h"
 #include "StringFilter.h"
 #include "MqttEmitter.h"
 #include "URLEmitter.h"
@@ -23,14 +23,14 @@
 #include <iomanip>
 #include <fstream>
 
-POCO_SERVER_MAIN(PersonDetection);
+POCO_SERVER_MAIN(ObjectDetection);
 
 using namespace cv;
 using namespace std;
 using namespace Poco;
 
 
-void PersonDetection::initialize(Application& self)
+void ObjectDetection::initialize(Application& self)
 {
     loadConfiguration();
 	ServerApplication::initialize(self);
@@ -38,7 +38,7 @@ void PersonDetection::initialize(Application& self)
     Poco::Logger::root().information("---------- Startup ----------");
 }
 
-void PersonDetection::uninitialize()
+void ObjectDetection::uninitialize()
 {
     Poco::Logger::root().information("---------- Shutdown ----------");
     Poco::Thread::sleep(100);
@@ -46,17 +46,21 @@ void PersonDetection::uninitialize()
 }
 
 
-int PersonDetection::main(const std::vector<std::string>& args)
+int ObjectDetection::main(const std::vector<std::string>& args)
 {
     
     try
     {
         //std::string url = "rtsp://admin:admin@192.168.1.250:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif";
-  
-        
+
+
         SetupCameras();
         SetupMQTT();
         SetupURLs();
+
+        StartupMQTT();
+        StartupURLs();
+        StartupCameras();
 
         waitForTerminationRequest();
 
@@ -76,7 +80,7 @@ int PersonDetection::main(const std::vector<std::string>& args)
 }
 
 
-void PersonDetection::SetupCameras()
+void ObjectDetection::SetupCameras()
 {
     
     vector<string> cameras;
@@ -90,7 +94,7 @@ void PersonDetection::SetupCameras()
     }
 }
 
-void PersonDetection::SetupMQTT()
+void ObjectDetection::SetupMQTT()
 {
     //Filter format
     //mqtt.filter = camname.classname, camname.cla*, !camname.*, !*.classname
@@ -100,8 +104,8 @@ void PersonDetection::SetupMQTT()
 
         mqtt = new MqttEmitter(
             config().getString("mqtt.broker_address"),
-            config().getString("mqtt.username"),
-            config().getString("mqtt.password"),
+            config().getString("mqtt.username", ""),
+            config().getString("mqtt.password", ""),
             config().getBool  ("mqtt.use_ssl", false),
             config().getString("mqtt.topic_prefix", ""),
             config().getString("mqtt.clientid", config().getString("application.baseName")),
@@ -142,7 +146,7 @@ void PersonDetection::SetupMQTT()
     
 }
 
-void PersonDetection::SetupURLs()
+void ObjectDetection::SetupURLs()
 {
     const string url_config_key = "url_fetch";
 
@@ -152,7 +156,10 @@ void PersonDetection::SetupURLs()
     for (auto url_name : url_config_names)
     {
         URLEventProcessor eventProcessor;
-        eventProcessor.url = new URLEmitter(config().getString(url_config_key + "." + url_name + ".url"));
+        eventProcessor.url = new URLEmitter(
+            config().getString(url_config_key + "." + url_name + ".url"),
+            config().getString(url_config_key + "." + url_name + ".username", ""),
+            config().getString(url_config_key + "." + url_name + ".password", ""));
         if (config().has(url_config_key + "." + url_name + ".filter"))
         {
             vector<StringFilter> url_filters;
@@ -183,19 +190,49 @@ void PersonDetection::SetupURLs()
     }
 }
 
-void PersonDetection::ShutdownCameras()
+void ObjectDetection::StartupCameras()
 {
+    for (auto& [name, detector] : detectors)
+    {
+        detector->start();
+    }
 }
 
-void PersonDetection::ShutdownMQTT()
+void ObjectDetection::StartupMQTT()
 {
+    if (!mqtt.isNull()) mqtt->start();
 }
 
-void PersonDetection::ShutdownURLs()
+void ObjectDetection::StartupURLs()
 {
+    for (auto& [name, url] : urls)
+    {
+        url.url->start();
+    }
 }
 
-void PersonDetection::ConfigureLogging()
+void ObjectDetection::ShutdownCameras()
+{
+    for (auto& [name, detector] : detectors)
+    {
+        detector->stop();
+    }
+}
+
+void ObjectDetection::ShutdownMQTT()
+{
+    if (!mqtt.isNull()) mqtt->stop();
+}
+
+void ObjectDetection::ShutdownURLs()
+{
+    for (auto& [name, url] : urls)
+    {
+        url.url->stop();
+    }
+}
+
+void ObjectDetection::ConfigureLogging()
 {
     try
     {

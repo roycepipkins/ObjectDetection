@@ -1,7 +1,7 @@
 #include "FrameRateLimiter.h"
 
 FrameRateLimiter::FrameRateLimiter(const std::string& camera_init_str, const int camera_init_int, const double frameRate):
-	frame_period_us((1.0/frameRate) * 1000000.0),
+	frame_period_us((int64_t)((1.0/frameRate) * 1000000.0)),
 	want_to_stop(false)
 {
 	if (camera_init_str.empty())
@@ -29,7 +29,7 @@ void FrameRateLimiter::stop()
 
 cv::Mat FrameRateLimiter::GetNextFrame()
 {
-	if (frame_available.tryWait(frame_period_us * 2))
+	if (frame_available.tryWait((long)(frame_period_us * 2)))
 	{
 		Poco::ScopedLock<Poco::Mutex> locker(mu_frame_queue);
 		return frame;

@@ -5,7 +5,7 @@
 #include "EventFilter.h"
 #include "MqttEmitter.h"
 
-class PersonDetection : public Poco::Util::ServerApplication
+class ObjectDetection : public Poco::Util::ServerApplication
 {
 protected:
 	void initialize(Application& self);
@@ -17,6 +17,10 @@ protected:
 	void SetupCameras();
 	void SetupMQTT();
 	void SetupURLs();
+	void StartupCameras();
+	void StartupMQTT();
+	void StartupURLs();
+
 	void ShutdownCameras();
 	void ShutdownMQTT();
 	void ShutdownURLs();

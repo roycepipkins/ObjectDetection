@@ -17,5 +17,6 @@ public:
 	cv::Mat frame;
 	std::string src_name;
 	std::string Name() { return src_name + "." + detection_class; }
+	bool is_null = true;
 };
 

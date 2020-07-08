@@ -22,8 +22,9 @@
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
     <ProjectGuid>{e593423f-6e40-4ec6-a147-7a2875ec0ddd}</ProjectGuid>
-    <RootNamespace>PersonDetection</RootNamespace>
+    <RootNamespace>ObjectDetection</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+    <ProjectName>ObjectDetection</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -168,7 +169,7 @@
     <ClCompile Include="FrameRateLimiter.cpp" />
     <ClCompile Include="jsoncpp.cpp" />
     <ClCompile Include="MqttEmitter.cpp" />
-    <ClCompile Include="PersonDetection.cpp" />
+    <ClCompile Include="ObjectDetection.cpp" />
     <ClCompile Include="StringFilter.cpp" />
     <ClCompile Include="ThreadedDetectionProcessor.cpp" />
     <ClCompile Include="URLEmitter.cpp" />
@@ -179,10 +180,14 @@
     <ClInclude Include="EventFilter.h" />
     <ClInclude Include="FrameRateLimiter.h" />
     <ClInclude Include="MqttEmitter.h" />
-    <ClInclude Include="PersonDetection.h" />
+    <ClInclude Include="ObjectDetection.h" />
+    <ClInclude Include="resource.h" />
     <ClInclude Include="StringFilter.h" />
     <ClInclude Include="ThreadedDetectionProcessor.h" />
     <ClInclude Include="URLEmitter.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="ObjectDetection.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

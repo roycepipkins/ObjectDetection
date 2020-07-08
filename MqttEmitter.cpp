@@ -46,6 +46,8 @@ MqttEmitter::~MqttEmitter()
 
 void MqttEmitter::processDetection(std::vector<Detection>& detections)
 {
+    assert(!detections.empty());
+
     if (!MQTTClient_isConnected(client))
     {
         int rc;
@@ -62,11 +64,15 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
     }
 
     //rich detection publication
-    if (!detections.empty())
-    {
-        string full_detection_topic = prefix + "full_detection";
-        string payload = getDetectionsAsJson(detections);
+    if (detections.empty()) return;
 
+    
+    string full_detection_topic = prefix + "/full_detection_array";
+    string payload = getDetectionsAsJson(detections);
+
+
+    if (!payload.empty())
+    {
         MQTTClient_message pubmsg = MQTTClient_message_initializer;
         MQTTClient_deliveryToken token;
 
@@ -80,8 +86,8 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
             log.error("Failed to publish MQTT message. Please check server and configured credentials");
         }
     }
-
-
+    
+    
     //terse detection publication
     std::unordered_map<std::string, int> last_class_status;
     auto it = last_detection_status.find(detections.at(0).src_name);
@@ -94,6 +100,7 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
 
     for (const auto& detection : detections)
     {
+        if (detection.is_null) continue;
         last_class_status[detection.detection_class] = 1;
     }
 
@@ -102,7 +109,7 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
     for (auto& [classname, present] : last_class_status)
 
     {
-        string topic = prefix + detections.at(0).src_name + "/" + classname;
+        string topic = prefix + "/" + detections.at(0).src_name + "/" + classname;
         string payload = present > 0 ? "1" : "0";
 
         MQTTClient_message pubmsg = MQTTClient_message_initializer;
@@ -146,6 +153,7 @@ std::string MqttEmitter::getDetectionsAsJson(const std::vector<Detection>& detec
 
     for (const auto& detection : detections)
     {
+        if (detection.is_null) continue;
         Json::Value json_detection;
         json_detection["classname"] = detection.detection_class;
         json_detection["confidence"] = detection.confidence;
@@ -162,6 +170,8 @@ std::string MqttEmitter::getDetectionsAsJson(const std::vector<Detection>& detec
         
         json_detections.append(json_detection);
     }
+
+    if (json_detections.size() == 0) return "";
 
     Json::FastWriter writer;
     return writer.write(json_detections);

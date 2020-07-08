@@ -3,6 +3,7 @@
 #include <Poco/Path.h>
 #include <Poco/Exception.h>
 #include <Poco/String.h>
+#include <Poco/Debugger.h>
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
@@ -23,16 +24,16 @@ Detector::Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco:
 	isInteractive(showWindows),
 	analysis_size(cv::Size(320, 320)),
 	confidence_threshold((float)config->getDouble("yolo.confidence_threshold", 0.35)),
-	nms_threshold((float)config->getDouble("nms_threshold", 0.3)),
+	nms_threshold((float)config->getDouble("yolo.nms_threshold", 0.3)),
 	want_to_stop(false)
 {
 	Poco::Path yolo_config_path(config->getString("application.dir"));
 	yolo_config_path.append("yolo-coco");
 	Poco::Path yolo_weight_path(yolo_config_path);
 	Poco::Path coco_names_path(yolo_config_path);
-	yolo_config_path.append("yolov3.cfg");
-	yolo_weight_path.append("yolov3.weights");
-	coco_names_path.append("coco.names");
+	yolo_config_path.append(config->getString("yolo.config", "yolov3.cfg"));
+	yolo_weight_path.append(config->getString("yolo.weights",  "yolov3.weights"));
+	coco_names_path.append(config->getString("yolo.coco_names", "coco.names"));
 
 	std::ifstream ifs(coco_names_path.toString().c_str());
 	if (!ifs.is_open())
@@ -52,11 +53,8 @@ Detector::Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco:
 
 	if (config->has("yolo.analysis_size"))
 	{
-		auto asize = config->getString("yolo.analysis_size");
-		if (Poco::toLower(asize) == "medium")
-			analysis_size = cv::Size(416, 416);
-		else if (Poco::toLower(asize) == "large")
-			analysis_size = cv::Size(608, 608);
+		auto asize = config->getInt("yolo.analysis_size");
+		analysis_size = cv::Size(asize, asize);
 	}
 
 	
@@ -131,7 +129,7 @@ void Detector::run()
 			if (isInteractive)
 			{
 				ostringstream buf;
-				buf << "YOLOv3 Dectect Time: " << fixed << setprecision(3) << ((double)t / getTickFrequency()) << "s";
+				buf << "YOLO Dectect Time: " << fixed << setprecision(3) << ((double)t / getTickFrequency()) << "s";
 				putText(frame, buf.str(), Point(10, 30), FONT_HERSHEY_PLAIN, 2.0, Scalar(0, 0, 255), 2, LINE_AA);
 			}
 
@@ -210,7 +208,8 @@ void Detector::run()
 				Detection detection;
 				detection.bounding_box = boxes[idx];
 				detection.confidence = confidences[idx];
-				detection.detection_class = classIds[idx];
+				detection.detection_class = classes[classIds[idx]];
+				detection.is_null = false;
 				detection.frame = frame;
 				detection.src_name = src_name;
 				detections.push_back(detection);
@@ -221,6 +220,14 @@ void Detector::run()
 					drawPred(classIds[idx], confidences[idx], box.x, box.y,
 						box.x + box.width, box.y + box.height, frame);
 				}
+			}
+
+			if (detections.empty())
+			{
+				Detection null_detection;
+				null_detection.src_name = src_name;
+				null_detection.is_null = true;
+				detections.push_back(null_detection);
 			}
 
 			detectionEvent.notify(this, detections);

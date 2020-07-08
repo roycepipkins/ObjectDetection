@@ -10,6 +10,7 @@ ThreadedDetectionProcessor::~ThreadedDetectionProcessor()
 
 void ThreadedDetectionProcessor::onDetection(const void* sender, std::vector<Detection>& detections)
 {
+	assert(!detections.empty());
 	ScopedLock<Mutex> locker(mu_detection_queue);
 	detection_queue.push(detections);
 	evt_detection_queue.set();
