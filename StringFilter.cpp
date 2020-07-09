@@ -5,7 +5,7 @@
 
 StringFilter::StringFilter(const std::string& filter, const bool isRegex):
 	negating(false),
-	detection_filter(filter),
+	detection_filter(isRegex ? filter : convertToPattern(filter)),
 	is_regex(isRegex),
 	regex(isRegex ? filter : convertToPattern(filter))
 {
@@ -54,5 +54,5 @@ std::string StringFilter::convertToPattern(const std::string& simplePattern)
 		}
 	}
 
-	return Poco::replace(simplePattern.substr(1), "*", ".*");
+	return Poco::replace(negating ? simplePattern.substr(1) : simplePattern, "*", ".*");
 }

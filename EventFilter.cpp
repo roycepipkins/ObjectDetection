@@ -1,7 +1,8 @@
 #include "EventFilter.h"
 
-EventFilter::EventFilter(const std::vector<StringFilter> filterValues) :
-	filters(filterValues)
+EventFilter::EventFilter(const std::vector<StringFilter> classFilterValues, const std::vector<StringFilter> sourceFilterValues) :
+	classFilters(classFilterValues),
+	sourceFilters(sourceFilterValues)
 {
 }
 
@@ -17,15 +18,22 @@ void EventFilter::onDetectionEvent(const void* sender, std::vector<Detection>& d
 		}
 		else
 		{
-			bool passed = false;
+			bool class_passed = false;
 			bool negated = false;
-			for (const auto& filter : filters)
+			for (const auto& filter : classFilters)
 			{
 				if (filter.isNegatation()) negated |= filter.match(detection.Name());
-				else passed |= filter.match(detection.Name());
+				else class_passed |= filter.match(detection.Name());
 			}
 
-			if (passed && !negated) filteredDetections.push_back(detection);
+			bool source_passed = false;
+			for (const auto& filter : sourceFilters)
+			{
+				if (filter.isNegatation()) negated |= filter.match(detection.src_name);
+				else source_passed |= filter.match(detection.src_name);
+			}
+
+			if (class_passed && source_passed && !negated) filteredDetections.push_back(detection);
 		}
 	}
 

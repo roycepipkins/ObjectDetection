@@ -51,9 +51,6 @@ int ObjectDetection::main(const std::vector<std::string>& args)
     
     try
     {
-        //std::string url = "rtsp://admin:admin@192.168.1.250:554/cam/realmonitor?channel=1&subtype=1&unicast=true&proto=Onvif";
-
-
         SetupCameras();
         SetupMQTT();
         SetupURLs();
@@ -114,16 +111,24 @@ void ObjectDetection::SetupMQTT()
 
 
 
-        if (config().has("mqtt.filter"))
+        if (config().has("mqtt.class_filter") || config().has("mqtt.source_filter"))
         {
-            vector<StringFilter> mqtt_filters;
-            StringTokenizer tokenizer(config().getString("mqtt.filter"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
+            vector<StringFilter> mqtt_class_filters;
+            StringTokenizer tokenizer(config().getString("mqtt.class_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
             for (auto filter : tokenizer)
             {
-                mqtt_filters.emplace_back(filter, false);
+                mqtt_class_filters.emplace_back(filter, false);
             }
 
-            mqtt_filter = new EventFilter(mqtt_filters);
+            vector<StringFilter> mqtt_source_filters;
+            StringTokenizer src_tokenizer(config().getString("mqtt.source_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
+            for (auto filter : src_tokenizer)
+            {
+                mqtt_source_filters.emplace_back(filter, false);
+            }
+
+
+            mqtt_filter = new EventFilter(mqtt_class_filters, mqtt_source_filters);
 
             for (auto& [name, detector] : detectors)
             {
@@ -160,16 +165,26 @@ void ObjectDetection::SetupURLs()
             config().getString(url_config_key + "." + url_name + ".url"),
             config().getString(url_config_key + "." + url_name + ".username", ""),
             config().getString(url_config_key + "." + url_name + ".password", ""));
-        if (config().has(url_config_key + "." + url_name + ".filter"))
+
+
+        if (config().has(url_config_key + "." + url_name + ".class_filter") || config().has(url_config_key + "." + url_name + ".source_filter"))
         {
-            vector<StringFilter> url_filters;
-            StringTokenizer tokenizer(config().getString(url_config_key + "." + url_name + ".filter"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
+            vector<StringFilter> url_class_filters;
+            StringTokenizer tokenizer(config().getString(url_config_key + "." + url_name + ".class_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
             for (auto filter : tokenizer)
             {
-                url_filters.emplace_back(filter, false);
+                url_class_filters.emplace_back(filter, false);
             }
 
-            eventProcessor.url_filter = new EventFilter(url_filters);
+
+            vector<StringFilter> url_source_filters;
+            StringTokenizer source_tokenizer(config().getString(url_config_key + "." + url_name + ".source_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
+            for (auto filter : source_tokenizer)
+            {
+                url_source_filters.emplace_back(filter, false);
+            }
+
+            eventProcessor.url_filter = new EventFilter(url_class_filters, url_source_filters);
 
             for (auto& [name, detector] : detectors)
             {
