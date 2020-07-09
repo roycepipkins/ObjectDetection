@@ -22,17 +22,17 @@ Detector::Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco:
 		config->getDouble("fps", 0.25)
 	),
 	isInteractive(showWindows),
-	analysis_size(cv::Size(320, 320)),
+	analysis_size(cv::Size(416, 416)),
 	confidence_threshold((float)config->getDouble("yolo.confidence_threshold", 0.35)),
-	nms_threshold((float)config->getDouble("yolo.nms_threshold", 0.3)),
+	nms_threshold((float)config->getDouble("yolo.nms_threshold", 0.48)),
 	want_to_stop(false)
 {
 	Poco::Path yolo_config_path(config->getString("application.dir"));
 	yolo_config_path.append("yolo-coco");
 	Poco::Path yolo_weight_path(yolo_config_path);
 	Poco::Path coco_names_path(yolo_config_path);
-	yolo_config_path.append(config->getString("yolo.config", "yolov3.cfg"));
-	yolo_weight_path.append(config->getString("yolo.weights",  "yolov3.weights"));
+	yolo_config_path.append(config->getString("yolo.config", "yolov4-leaky-416.cfg"));
+	yolo_weight_path.append(config->getString("yolo.weights",  "yolov4-leaky-416.weights"));
 	coco_names_path.append(config->getString("yolo.coco_names", "coco.names"));
 
 	std::ifstream ifs(coco_names_path.toString().c_str());
@@ -53,7 +53,7 @@ Detector::Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco:
 
 	if (config->has("yolo.analysis_size"))
 	{
-		auto asize = config->getInt("yolo.analysis_size");
+		auto asize = config->getInt("yolo.analysis_size", 416);
 		analysis_size = cv::Size(asize, asize);
 	}
 

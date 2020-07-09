@@ -23,17 +23,17 @@ ObjectDetection is configured by a Java properties style file named <executable_
 |logs.full_path_override  |N| |A fully qualifed path and filename where the log should be written|
 |logs.use_utc|N|false|The time stamps in the log can optionally appear in UTC time|
 |logs.rotation|N|00:00|The time the log file should be rotated out for a new file. [See here.](https://pocoproject.org/docs/Poco.FileChannel.html)|
-|logs.purge_age|N|12 months|Past this age the log files are deleted.|
+|logs.purge_age|N|12 months|Past this age the log files are deleted. [See here.](https://pocoproject.org/docs/Poco.FileChannel.html)|
 |**~For Each Camera**||||
 |camera.*camera_name*.location|N| |The URL of the camera feed. Used in prefrence to index if specified.|
 |camera.*camera_name*.index|N|0|The numeric index of the web camera on the executing machine.|
 |camera.*camera_name*.fps|N|0.25|Max FPS pulled and scanned from a feed. Use this to limit CPU usage.|
-|camera.*camera_name*.yolo.config|N|yolov3.cfg|Name of the YOLO configuration file.|
-|camera.*camera_name*.yolo.weights|N|yolov3.weights|Name of the YOLO weights file.|
+|camera.*camera_name*.yolo.config|N|yolov4-leaky-416.cfg|Name of the YOLO configuration file.|
+|camera.*camera_name*.yolo.weights|N|yolov4-leaky-416.weights|Name of the YOLO weights file.|
 |camera.*camera_name*.yolo.coco_names|N|coco.names|Name of the file with the COCO classname list.|
 |camera.*camera_name*.yolo.confidence_threshold|N|0.35|(0.00 - 1.00) Minimum confidence required for detection report|
-|camera.*camera_name*.yolo.nms_threshold|N|0.3|Used to merge overlapping detections.|
-|camera.*camera_name*.yolo.analysis_size|N|320|The square image size previously used to train. Should match configured network.|
+|camera.*camera_name*.yolo.nms_threshold|N|0.48|Used to merge overlapping detections.|
+|camera.*camera_name*.yolo.analysis_size|N|416|The square image size previously used to train. Should match configured network.|
 |**MQTT**||||
 |mqtt.broker_address|N| |The address of the MQTT Broker|
 |mqtt.username|N| |The username to be submitted to the broker|
@@ -41,12 +41,14 @@ ObjectDetection is configured by a Java properties style file named <executable_
 |mqtt.topic_prefix|N| |Prepended to the published topic names|
 |mqtt.clientid|N|*executable_name*|The name given to the broker|
 |mqtt.qos|N|1|The Quality of Service of the publications|
-|mqtt.filter|N|\*|Comma seperated list of COCO classnames. \* is a wildcard. ! may be prepended to a specific classname to exclude it.|
+|mqtt.class_filter|N|\*|Comma seperated list of COCO classnames. \* is a wildcard. ! may be prepended to a specific classname to exclude it.|
+|mqtt.source_filter|N|\*|Comma seperated list of camera_name filters. \* is a wildcard. ! may be prepended to a specific camera_name to exclude it.|
 |**~For Each URL**||||
 |url_fetch.*url_name*.url|N| |The URL to send the HTTP GET request|
 |url_fetch.*url_name*.username|N| |The HTTP Basic Authorization user name. (Note: Doen't seem to work for Blue Iris. Embed in URL instead)|
 |url_fetch.*url_name*.password|N| |The HTTP Basic Authorization password. (Note: Doen't seem to work for Blue Iris. Embed in URL instead)|
-|url_fetch.*url_name*.filter|N|\*|Comma seperated list of COCO classnames. \* is a wildcard. ! may be prepended to a specific classname to exclude it.|
+|url_fetch.*url_name*.class_filter|N|\*|Comma seperated list of COCO classnames. \* is a wildcard. ! may be prepended to a specific classname to exclude it.|
+|url_fetch.*url_name*.source_filter|N|\*|Comma seperated list of camera_name filters. \* is a wildcard. ! may be prepended to a specific camera_name to exclude it.|
 
 
 
