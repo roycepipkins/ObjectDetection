@@ -264,3 +264,6 @@ __pycache__/
 yolo-coco/*
 
 *.mp4
+
+# Test stuff
+test_deploy/*
