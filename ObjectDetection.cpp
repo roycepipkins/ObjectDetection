@@ -66,6 +66,11 @@ int ObjectDetection::main(const std::vector<std::string>& args)
         ShutdownURLs();
 
     }
+    catch (Poco::Exception& e)
+    {
+        Poco::Logger::root().fatal(e.displayText());
+        return -1;
+    }
     catch (std::exception& e)
     {
         Poco::Logger::root().fatal(e.what());
@@ -85,9 +90,21 @@ void ObjectDetection::SetupCameras()
 
     for (auto camera : cameras)
     {
-        auto camera_config = config().createView("camera." + camera);
-        SharedPtr<Detector> detector = new Detector(camera, isInteractive(), camera_config);
-        detectors[camera] = detector;
+        try
+        {
+            auto camera_config = config().createView("camera." + camera);
+            SharedPtr<Detector> detector = new Detector(camera, isInteractive(), camera_config);
+            detectors[camera] = detector;
+        }
+        catch (Poco::Exception& e)
+        {
+            Poco::Logger::root().error("An error occurred while configuring camera " + camera + " -> " + e.displayText());
+        }
+        catch (std::exception& e)
+        {
+            Poco::Logger::root().error("An error occurred while configuring camera " + camera + " -> " + string(e.what()));
+        }
+        
     }
 }
 
@@ -98,55 +115,65 @@ void ObjectDetection::SetupMQTT()
     
     if (config().has("mqtt.broker_address"))
     {
-
-        mqtt = new MqttEmitter(
-            config().getString("mqtt.broker_address"),
-            config().getString("mqtt.username", ""),
-            config().getString("mqtt.password", ""),
-            config().getBool  ("mqtt.use_ssl", false),
-            config().getString("mqtt.topic_prefix", ""),
-            config().getString("mqtt.clientid", config().getString("application.baseName")),
-            config().getInt("mqtt.qos", 1)
-        );
-
-
-
-        if (config().has("mqtt.class_filter") || config().has("mqtt.source_filter"))
+        try
         {
-            vector<StringFilter> mqtt_class_filters;
-            StringTokenizer tokenizer(config().getString("mqtt.class_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
-            for (auto filter : tokenizer)
+            mqtt = new MqttEmitter(
+                config().getString("mqtt.broker_address"),
+                config().getString("mqtt.username", ""),
+                config().getString("mqtt.password", ""),
+                config().getBool("mqtt.use_ssl", false),
+                config().getString("mqtt.topic_prefix", ""),
+                config().getString("mqtt.clientid", config().getString("application.baseName")),
+                config().getInt("mqtt.qos", 1)
+            );
+
+
+
+            if (config().has("mqtt.class_filter") || config().has("mqtt.source_filter"))
             {
-                mqtt_class_filters.emplace_back(filter, false);
-            }
+                vector<StringFilter> mqtt_class_filters;
+                StringTokenizer tokenizer(config().getString("mqtt.class_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
+                for (auto filter : tokenizer)
+                {
+                    mqtt_class_filters.emplace_back(filter, false);
+                }
 
-            vector<StringFilter> mqtt_source_filters;
-            StringTokenizer src_tokenizer(config().getString("mqtt.source_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
-            for (auto filter : src_tokenizer)
+                vector<StringFilter> mqtt_source_filters;
+                StringTokenizer src_tokenizer(config().getString("mqtt.source_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
+                for (auto filter : src_tokenizer)
+                {
+                    mqtt_source_filters.emplace_back(filter, false);
+                }
+
+
+                mqtt_filter = new EventFilter(mqtt_class_filters, mqtt_source_filters);
+
+                for (auto& [name, detector] : detectors)
+                {
+                    detector->detectionEvent += delegate(mqtt_filter.get(), &EventFilter::onDetectionEvent);
+                }
+
+                mqtt_filter->filteredDetectionEvent += delegate(mqtt.get(), &ThreadedDetectionProcessor::onDetection);
+
+            }
+            else
             {
-                mqtt_source_filters.emplace_back(filter, false);
+                for (auto& [name, detector] : detectors)
+                {
+                    detector->detectionEvent += delegate(mqtt.get(), &ThreadedDetectionProcessor::onDetection);
+                }
             }
-
-
-            mqtt_filter = new EventFilter(mqtt_class_filters, mqtt_source_filters);
-
-            for (auto& [name, detector] : detectors)
-            {
-                detector->detectionEvent += delegate(mqtt_filter.get(), &EventFilter::onDetectionEvent);
-            }
-
-            mqtt_filter->filteredDetectionEvent += delegate(mqtt.get(), &ThreadedDetectionProcessor::onDetection);
-
         }
-        else
+        catch (Poco::Exception& e)
         {
-            for (auto& [name, detector] : detectors)
-            {
-                detector->detectionEvent += delegate(mqtt.get(), &ThreadedDetectionProcessor::onDetection);
-            }
+            Poco::Logger::root().error("An error occurred while configuring MQTT. -> " + e.displayText());
+        }
+        catch (std::exception& e)
+        {
+            Poco::Logger::root().error("An error occurred while configuring MQTT. -> " + string(e.what()));
         }
 
-        mqtt->start();
+        if (!mqtt.isNull()) mqtt->start();
     }
     
 }
@@ -160,48 +187,59 @@ void ObjectDetection::SetupURLs()
 
     for (auto url_name : url_config_names)
     {
-        URLEventProcessor eventProcessor;
-        eventProcessor.url = new URLEmitter(
-            config().getString(url_config_key + "." + url_name + ".url"),
-            config().getString(url_config_key + "." + url_name + ".username", ""),
-            config().getString(url_config_key + "." + url_name + ".password", ""));
-
-
-        if (config().has(url_config_key + "." + url_name + ".class_filter") || config().has(url_config_key + "." + url_name + ".source_filter"))
+        try
         {
-            vector<StringFilter> url_class_filters;
-            StringTokenizer tokenizer(config().getString(url_config_key + "." + url_name + ".class_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
-            for (auto filter : tokenizer)
+            URLEventProcessor eventProcessor;
+            eventProcessor.url = new URLEmitter(
+                config().getString(url_config_key + "." + url_name + ".url"),
+                config().getString(url_config_key + "." + url_name + ".username", ""),
+                config().getString(url_config_key + "." + url_name + ".password", ""));
+
+
+            if (config().has(url_config_key + "." + url_name + ".class_filter") || config().has(url_config_key + "." + url_name + ".source_filter"))
             {
-                url_class_filters.emplace_back(filter, false);
+                vector<StringFilter> url_class_filters;
+                StringTokenizer tokenizer(config().getString(url_config_key + "." + url_name + ".class_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
+                for (auto filter : tokenizer)
+                {
+                    url_class_filters.emplace_back(filter, false);
+                }
+
+
+                vector<StringFilter> url_source_filters;
+                StringTokenizer source_tokenizer(config().getString(url_config_key + "." + url_name + ".source_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
+                for (auto filter : source_tokenizer)
+                {
+                    url_source_filters.emplace_back(filter, false);
+                }
+
+                eventProcessor.url_filter = new EventFilter(url_class_filters, url_source_filters);
+
+                for (auto& [name, detector] : detectors)
+                {
+                    detector->detectionEvent += delegate(eventProcessor.url_filter.get(), &EventFilter::onDetectionEvent);
+                }
+
+                eventProcessor.url_filter->filteredDetectionEvent += delegate(eventProcessor.url.get(), &ThreadedDetectionProcessor::onDetection);
+            }
+            else
+            {
+                for (auto& [name, detector] : detectors)
+                {
+                    detector->detectionEvent += delegate(eventProcessor.url.get(), &ThreadedDetectionProcessor::onDetection);
+                }
             }
 
-
-            vector<StringFilter> url_source_filters;
-            StringTokenizer source_tokenizer(config().getString(url_config_key + "." + url_name + ".source_filter", "*"), ",", StringTokenizer::TOK_TRIM | StringTokenizer::TOK_IGNORE_EMPTY);
-            for (auto filter : source_tokenizer)
-            {
-                url_source_filters.emplace_back(filter, false);
-            }
-
-            eventProcessor.url_filter = new EventFilter(url_class_filters, url_source_filters);
-
-            for (auto& [name, detector] : detectors)
-            {
-                detector->detectionEvent += delegate(eventProcessor.url_filter.get(), &EventFilter::onDetectionEvent);
-            }
-
-            eventProcessor.url_filter->filteredDetectionEvent += delegate(eventProcessor.url.get(), &ThreadedDetectionProcessor::onDetection);
+            urls[url_name] = eventProcessor;
         }
-        else
+        catch (Poco::Exception& e)
         {
-            for (auto& [name, detector] : detectors)
-            {
-                detector->detectionEvent += delegate(eventProcessor.url.get(), &ThreadedDetectionProcessor::onDetection);
-            }
+            Poco::Logger::root().error("An error occurred while configuring URL Fetch "  + url_name + " -> " + e.displayText());
         }
-
-        urls[url_name] = eventProcessor;
+        catch (std::exception& e)
+        {
+            Poco::Logger::root().error("An error occurred while configuring URL Fetch " + url_name + " -> " + e.what());
+        }
     }
 }
 
@@ -273,15 +311,21 @@ void ObjectDetection::ConfigureLogging()
         fc->setProperty("purgeAge", config().getString("logs.purge_age", "12 months"));
 
         AutoPtr<PatternFormatter> pf(new PatternFormatter);
-        pf->setProperty("pattern", "%Y-%m-%d %H:%M:%S.%i %p: %s %t");
+        string pattern = config().getBool("logs.use_utc", false) ? "%E" : "%L";
+        pattern += "%Y-%m-%d %H:%M:%S.%i %p: %s %t";
+        pf->setProperty("pattern", pattern);
         AutoPtr<FormattingChannel> fmtc(new FormattingChannel(pf, fc));
 
         Logger::root().setChannel(fmtc);
         Logger::root().setLevel(config().getString("log.level", "information"));
     }
+    catch (Poco::Exception& e)
+    {
+        std::cerr << "While configuring logging: " + e.displayText();
+    }
     catch (std::exception& e)
     {
-        std::cerr << e.what();
+        std::cerr << "While configuring logging: " + string(e.what());
     }
     
 

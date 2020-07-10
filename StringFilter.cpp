@@ -47,9 +47,9 @@ std::string StringFilter::convertToPattern(const std::string& simplePattern)
 	{
 		if (!isalnum(c))
 		{
-			if (c != '*')
+			if (c != '*' && c != '_')
 			{
-				throw Poco::RuntimeException("Simple Patterns must be alphanumeric with * wildcards or leading ! only.");
+				throw Poco::RuntimeException("Simple Filter Patterns must be alphanumeric or underscore with * wildcards or leading ! only.");
 			}
 		}
 	}
