@@ -33,7 +33,8 @@ private:
 	bool isInteractive;
 	void drawPred(int classId, float conf, int left, int top, int right, int bottom, cv::Mat& frame);
 
-	cv::dnn::dnn4_v20200310::Net yolo_net;
+	cv::dnn::dnn4_v20200609::Net yolo_net;
+	//cv::dnn::dnn4_v20200310::Net yolo_net;
 	std::vector<cv::String> output_layers;
 	cv::Size analysis_size;
 	float confidence_threshold;

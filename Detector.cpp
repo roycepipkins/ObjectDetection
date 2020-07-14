@@ -49,6 +49,8 @@ Detector::Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco:
 	}
 
 	yolo_net = cv::dnn::readNetFromDarknet(yolo_config_path.toString(), yolo_weight_path.toString());
+	yolo_net.setPreferableBackend(cv::dnn::DNN_BACKEND_CUDA);
+	yolo_net.setPreferableTarget(cv::dnn::DNN_TARGET_CUDA);
 	output_layers = yolo_net.getUnconnectedOutLayersNames();
 
 	if (config->has("yolo.analysis_size"))
