@@ -191,9 +191,11 @@ void ObjectDetection::SetupURLs()
         {
             URLEventProcessor eventProcessor;
             eventProcessor.url = new URLEmitter(
+                url_name,
                 config().getString(url_config_key + "." + url_name + ".url"),
                 config().getString(url_config_key + "." + url_name + ".username", ""),
-                config().getString(url_config_key + "." + url_name + ".password", ""));
+                config().getString(url_config_key + "." + url_name + ".password", ""),
+                config().getBool(url_config_key + "." + url_name + ".log_detections", false));
 
 
             if (config().has(url_config_key + "." + url_name + ".class_filter") || config().has(url_config_key + "." + url_name + ".source_filter"))

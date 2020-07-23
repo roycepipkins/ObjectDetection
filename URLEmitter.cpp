@@ -5,23 +5,34 @@
 #include <Poco/Net/HTTPResponse.h>
 #include <Poco/Net/HTTPCredentials.h>
 
+#include <Poco/Util/Application.h>
+
 #include <Poco/Exception.h>
 #include <Poco/StreamCopier.h>
 #include <Poco/Base64Encoder.h>
+#include <Poco/Timestamp.h>
+#include <Poco/DateTime.h>
+#include <Poco/DateTimeFormatter.h>
+#include <Poco/Path.h>
+#include <Poco/File.h>
 
 #include <iostream>
 #include <sstream>
+
+#include <opencv2/opencv.hpp>
 
 
 using namespace std;
 using namespace Poco;
 using namespace Poco::Net;
 
-URLEmitter::URLEmitter(const std::string& url, const std::string& username, const std::string& password):
+URLEmitter::URLEmitter(const std::string& emitter_name, const std::string& url, const std::string& username, const std::string& password, const bool log_detections):
+	name(emitter_name),
 	theUrl(url),
 	user(username),
 	pw(password),
 	uri(url),
+	log_detects(log_detections),
 	log(Poco::Logger::get("URL"))
 {
 
@@ -68,6 +79,12 @@ void URLEmitter::processDetection(std::vector<Detection>& detections)
 		{
 			log.information(msg.str());
 		}
+
+		if (log_detects)
+		{
+			LogDetection(detections);
+		}
+
 	}
 	catch (Poco::Exception& e)
 	{
@@ -78,4 +95,22 @@ void URLEmitter::processDetection(std::vector<Detection>& detections)
 		log.error(theUrl + " -> " + e.what());
 	}
 	
+}
+
+
+void URLEmitter::LogDetection(std::vector<Detection>& detections)
+{
+	Poco::DateTime now;
+	Path log_path(Poco::Util::Application::instance().config().getString("application.dir"));
+	log_path.append("logs");
+	log_path.append(name);
+
+	File(log_path).createDirectories();
+
+	std::stringstream fname;
+	fname << Poco::DateTimeFormatter::format(now, "%Y%m%d-%H%M%S.%i") << "_" << Timestamp().epochTime() << ".jpg";
+	log_path.append(fname.str());
+
+	cv::imwrite(log_path.toString(), detections.at(0).frame);
+
 }

@@ -137,8 +137,8 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>..\poco-1.10.1\build\lib\Debug;..\opencv\build\install\x64\vc16\staticlib;..\paho.mqtt.c\build\src\Debug\</AdditionalLibraryDirectories>
-      <AdditionalDependencies>paho-mqtt3c-static.lib;Ws2_32.lib;Iphlpapi.lib;IlmImfd.lib;ippiwd.lib;ittnotifyd.lib;libjasperd.lib;libjpeg-turbod.lib;libpngd.lib;libprotobufd.lib;libtiffd.lib;libwebpd.lib;opencv_calib3d430d.lib;opencv_core430d.lib;opencv_dnn430d.lib;opencv_features2d430d.lib;opencv_flann430d.lib;opencv_gapi430d.lib;opencv_highgui430d.lib;opencv_imgcodecs430d.lib;opencv_imgproc430d.lib;opencv_ml430d.lib;opencv_objdetect430d.lib;opencv_photo430d.lib;opencv_stitching430d.lib;opencv_video430d.lib;opencv_videoio430d.lib;quircd.lib;zlibd.lib;ippicvmt.lib;ade.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalLibraryDirectories>..\poco-1.10.1\build\lib\Debug;..\opencv\build\install\x64\vc16\staticlib;..\paho.mqtt.c\build\src\Debug\;..\cudnn-10.2-windows10-x64-v7.6.5.32\cuda\lib\x64;$(CUDA_PATH)\lib\x64</AdditionalLibraryDirectories>
+      <AdditionalDependencies>paho-mqtt3c-static.lib;Ws2_32.lib;Iphlpapi.lib;cudnn.lib;cudart_static.lib;cublas.lib;ade.lib;IlmImfd.lib;ippiwd.lib;ittnotifyd.lib;libjasperd.lib;libjpeg-turbod.lib;libpngd.lib;libprotobufd.lib;libtiffd.lib;libwebpd.lib;opencv_img_hash440d.lib;opencv_world440d.lib;quircd.lib;zlibd.lib;ippicvmt.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -166,7 +166,6 @@
   <ItemGroup>
     <ClCompile Include="Detector.cpp" />
     <ClCompile Include="EventFilter.cpp" />
-    <ClCompile Include="FrameRateLimiter.cpp" />
     <ClCompile Include="jsoncpp.cpp" />
     <ClCompile Include="MqttEmitter.cpp" />
     <ClCompile Include="ObjectDetection.cpp" />
@@ -178,7 +177,6 @@
     <ClInclude Include="Detection.h" />
     <ClInclude Include="Detector.h" />
     <ClInclude Include="EventFilter.h" />
-    <ClInclude Include="FrameRateLimiter.h" />
     <ClInclude Include="MqttEmitter.h" />
     <ClInclude Include="ObjectDetection.h" />
     <ClInclude Include="resource.h" />

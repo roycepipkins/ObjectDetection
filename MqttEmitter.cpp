@@ -23,23 +23,19 @@ MqttEmitter::MqttEmitter(
 	log(Poco::Logger::root().get("MQTT")),
     conn_opts(MQTTClient_connectOptions_initializer)
 {
-    int rc;
+  
 
     MQTTClient_create(&client, broker_addr.c_str(), id.c_str(),
         MQTTCLIENT_PERSISTENCE_NONE, NULL);
     conn_opts.keepAliveInterval = 20;
     conn_opts.cleansession = 1;
 
-    if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
-    {
-        log.error("Failed to connect, return code %d\n", rc);
-    }
+   
 }
 
 MqttEmitter::~MqttEmitter()
 {
-    log.information("Disconnecting from MQTT broker");
-    MQTTClient_disconnect(client, 10000);
+    MQTTClient_disconnect(client, 1000);
     MQTTClient_destroy(&client);
     
 }
@@ -47,11 +43,27 @@ MqttEmitter::~MqttEmitter()
 void MqttEmitter::processDetection(std::vector<Detection>& detections)
 {
     assert(!detections.empty());
+    if (detections.empty()) return;
+    
+    
+    
 
-    if (!MQTTClient_isConnected(client))
+    //rich detection publication
+    
+
+    
+    string full_detection_topic = prefix + "/full_detection_array";
+    string payload = getDetectionsAsJson(detections);
+
+
+
+
+    if (!payload.empty())
     {
+
+        
         int rc;
-        log.warning("MQTT client found disconnected. Attempting to reconnect...");
+        log.information("MQTT client connecting...");
         if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
         {
             log.error("Failed to connect to MQTT broker, return code %d\n", rc);
@@ -59,20 +71,11 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
         }
         else
         {
-            log.information("Reconnected to MQTT");
+            log.information("Connected to MQTT Broker");
         }
-    }
-
-    //rich detection publication
-    if (detections.empty()) return;
-
-    
-    string full_detection_topic = prefix + "/full_detection_array";
-    string payload = getDetectionsAsJson(detections);
+        
 
 
-    if (!payload.empty())
-    {
         MQTTClient_message pubmsg = MQTTClient_message_initializer;
         MQTTClient_deliveryToken token;
 
@@ -103,6 +106,8 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
         if (detection.is_null) continue;
         last_class_status[detection.detection_class] = 1;
     }
+
+    
 
 
     //loop over last_detection_status and publish each.
@@ -142,6 +147,9 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
 
     last_detection_status[detections.at(0).src_name] = last_class_status;
     
+    MQTTClient_disconnect(client, 1000);
+    
+
 }
 
 

@@ -6,7 +6,7 @@
 #include <Poco/BasicEvent.h>
 #include <Poco/Util/ConfigurationView.h>
 
-#include "FrameRateLimiter.h"
+
 #include "Detection.h"
 
 #include <opencv2/dnn.hpp>
@@ -28,10 +28,13 @@ public:
 private:
 	std::string src_name;
 	Poco::Logger& log;
-	FrameRateLimiter vidSrc;
+	const std::string cam_location;
+	const int cam_index;
+	int64_t cam_detect_period_us;
+	Poco::SharedPtr<cv::VideoCapture> cam;
 	std::vector<std::string> classes;
 	bool isInteractive;
-	void drawPred(int classId, float conf, int left, int top, int right, int bottom, cv::Mat& frame);
+	void drawPred(std::string class_name, float conf, int left, int top, int right, int bottom, cv::Mat& frame);
 
 	cv::dnn::dnn4_v20200609::Net yolo_net;
 	//cv::dnn::dnn4_v20200310::Net yolo_net;
@@ -39,6 +42,8 @@ private:
 	cv::Size analysis_size;
 	float confidence_threshold;
 	float nms_threshold;
+	int StrToBackend(const std::string& tech);
+	int StrToTarget(const std::string& target);
 
 	Poco::Thread detector_thread;
 	volatile bool want_to_stop;
