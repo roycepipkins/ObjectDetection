@@ -97,7 +97,7 @@ void URLEmitter::processDetection(std::vector<Detection>& detections)
 	
 }
 
-
+//TODO Move this to its own threaded detector. It really should not be part of URLEmitter.
 void URLEmitter::LogDetection(std::vector<Detection>& detections)
 {
 	Poco::DateTime now;
@@ -108,7 +108,7 @@ void URLEmitter::LogDetection(std::vector<Detection>& detections)
 	File(log_path).createDirectories();
 
 	std::stringstream fname;
-	fname << Poco::DateTimeFormatter::format(now, "%Y%m%d-%H%M%S.%i") << "_" << Timestamp().epochTime() << ".jpg";
+	fname << name << "_" << Poco::DateTimeFormatter::format(now, "%Y%m%d-%H%M%S.%i") << ".jpg";
 	log_path.append(fname.str());
 
 	cv::imwrite(log_path.toString(), detections.at(0).frame);

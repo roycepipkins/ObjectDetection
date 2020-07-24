@@ -47,5 +47,7 @@ private:
 
 	MQTTClient client;
 	MQTTClient_connectOptions conn_opts;
+
+	bool MqttConnect();
 };
 

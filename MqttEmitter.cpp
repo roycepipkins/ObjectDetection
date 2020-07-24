@@ -40,6 +40,22 @@ MqttEmitter::~MqttEmitter()
     
 }
 
+bool MqttEmitter::MqttConnect()
+{
+    int rc;
+    log.information("MQTT client connecting...");
+    if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
+    {
+        log.error("Failed to connect to MQTT broker, return code %d\n", rc);
+        return false;
+    }
+    else
+    {
+        log.information("Connected to MQTT Broker");
+        return true;
+    }
+}
+
 void MqttEmitter::processDetection(std::vector<Detection>& detections)
 {
     assert(!detections.empty());
@@ -56,23 +72,13 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
     string payload = getDetectionsAsJson(detections);
 
 
-
+    bool mqtt_connected = false;
 
     if (!payload.empty())
     {
 
+        if (!mqtt_connected) mqtt_connected = MqttConnect();
         
-        int rc;
-        log.information("MQTT client connecting...");
-        if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
-        {
-            log.error("Failed to connect to MQTT broker, return code %d\n", rc);
-            return;
-        }
-        else
-        {
-            log.information("Connected to MQTT Broker");
-        }
         
 
 
@@ -114,6 +120,8 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
     for (auto& [classname, present] : last_class_status)
 
     {
+        if (!mqtt_connected) mqtt_connected = MqttConnect();
+
         string topic = prefix + "/" + detections.at(0).src_name + "/" + classname;
         string payload = present > 0 ? "1" : "0";
 
@@ -125,7 +133,7 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
         pubmsg.qos = pub_qos;
         pubmsg.retained = 0;
         MQTTClient_publishMessage(client, topic.c_str(), &pubmsg, &token);
-        if (MQTTCLIENT_SUCCESS != MQTTClient_waitForCompletion(client, token, 1000))
+        if (MQTTCLIENT_SUCCESS != MQTTClient_waitForCompletion(client, token, 4000))
         {
             log.error("Failed to publish MQTT message. Please check server and configured credentials");
         }
