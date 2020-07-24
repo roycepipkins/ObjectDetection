@@ -100,7 +100,7 @@ void URLEmitter::processDetection(std::vector<Detection>& detections)
 //TODO Move this to its own threaded detector. It really should not be part of URLEmitter.
 void URLEmitter::LogDetection(std::vector<Detection>& detections)
 {
-	Poco::DateTime now;
+	Poco::LocalDateTime now;
 	Path log_path(Poco::Util::Application::instance().config().getString("application.dir"));
 	log_path.append("logs");
 	log_path.append(name);
