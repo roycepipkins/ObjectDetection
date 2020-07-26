@@ -294,9 +294,10 @@ void Detector::run()
 
 					for (auto& detection : detections)
 					{
-						drawPred(detection.detection_class, detection.confidence,
-							detection.bounding_box.x, detection.bounding_box.y, 
-							detection.bounding_box.x + detection.bounding_box.width, detection.bounding_box.y + detection.bounding_box.height, frame);
+						if (!detection.is_null) 
+							drawPred(detection.detection_class, detection.confidence,
+								detection.bounding_box.x, detection.bounding_box.y, 
+								detection.bounding_box.x + detection.bounding_box.width, detection.bounding_box.y + detection.bounding_box.height, frame);
 					}
 
 					putText(frame, buf.str(), Point(10, 30), FONT_HERSHEY_PLAIN, 2.0, Scalar(0, 0, 255), 2, LINE_AA);
