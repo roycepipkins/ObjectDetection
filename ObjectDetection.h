@@ -1,9 +1,12 @@
 #pragma once
 #include <Poco/SharedPtr.h>
 #include <Poco/Util/ServerApplication.h>
+#include <Poco/LogStream.h>
 #include "Detector.h"
 #include "EventFilter.h"
 #include "MqttEmitter.h"
+#include <opencv2/core/utils/logger.hpp>
+
 
 class ObjectDetection : public Poco::Util::ServerApplication
 {
@@ -39,5 +42,9 @@ private:
 
 	std::unordered_map<std::string, URLEventProcessor> urls;
 
+	Poco::SharedPtr<Poco::LogStream> opencv_cout;
+	Poco::SharedPtr<Poco::LogStream> opencv_cerr;
+
+	cv::utils::logging::LogLevel StrToLogLevel(const std::string& log_level);
 };
 

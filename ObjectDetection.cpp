@@ -13,11 +13,13 @@
 #include <Poco/StringTokenizer.h>
 #include <Poco/Delegate.h>
 #include <Poco/BasicEvent.h>
+#include <Poco/String.h>
+
 
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
-#include <opencv2/dnn.hpp>
+
 
 #include <iostream>
 #include <iomanip>
@@ -319,7 +321,16 @@ void ObjectDetection::ConfigureLogging()
         AutoPtr<FormattingChannel> fmtc(new FormattingChannel(pf, fc));
 
         Logger::root().setChannel(fmtc);
-        Logger::root().setLevel(config().getString("log.level", "information"));
+        Logger::root().setLevel(config().getString("log.app.level", "information"));
+
+
+        opencv_cout = new LogStream(Logger::get("OpenCV"), Message::PRIO_INFORMATION, 1024);
+        opencv_cerr = new LogStream(Logger::get("OpenCV"), Message::PRIO_ERROR, 1024);
+
+        std::cout.rdbuf((*opencv_cout).rdbuf());
+        std::cerr.rdbuf((*opencv_cerr).rdbuf());
+        cv::utils::logging::setLogLevel(StrToLogLevel(config().getString("log.opencv.level", "error")));
+        
     }
     catch (Poco::Exception& e)
     {
@@ -331,4 +342,26 @@ void ObjectDetection::ConfigureLogging()
     }
     
 
+}
+
+cv::utils::logging::LogLevel ObjectDetection::StrToLogLevel(const std::string& log_level)
+{
+    using namespace cv::utils::logging;
+    string level = Poco::toLower(log_level);
+    if (level == "fatal" || level == "critical")
+        return LOG_LEVEL_FATAL;
+    if (level == "error")
+        return LOG_LEVEL_ERROR;
+    if (level == "warning")
+        return LOG_LEVEL_WARNING;
+    if (level == "notice" || level == "information" || level == "info")
+        return LOG_LEVEL_INFO;
+    if (level == "debug")
+        return LOG_LEVEL_DEBUG;
+    if (level == "trace" || level == "verbose")
+        return LOG_LEVEL_VERBOSE;
+    if (level == "none" || level == "silent")
+        return LOG_LEVEL_SILENT;
+
+    return LOG_LEVEL_ERROR;
 }
