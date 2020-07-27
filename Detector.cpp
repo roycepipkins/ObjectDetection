@@ -24,10 +24,12 @@ Detector::Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco:
 	analysis_size(cv::Size(416, 416)),
 	confidence_threshold((float)config->getDouble("yolo.confidence_threshold", 0.35)),
 	nms_threshold((float)config->getDouble("yolo.nms_threshold", 0.48)),
-	want_to_stop(false)
+	want_to_stop(false),
+	use_pre_limiter(true)
 {
-	if (config->getDouble("fps", 0.25) > 0)
-		cam_detect_period_us = (int64_t)((1.0 / config->getDouble("fps", 0.25)) * 1000000.0);
+	cam_fps = config->getDouble("fps", 0.25);
+	if (cam_fps > 0 && !use_pre_limiter)
+		cam_detect_period_us = (int64_t)((1.0 / cam_fps) * 1000000.0);
 	else
 		cam_detect_period_us = 0;
 
@@ -52,12 +54,12 @@ Detector::Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco:
 		classes.push_back(line);
 	}
 
-	std::string bkend = Poco::toLower(config->getString("yolo.backend", "cuda"));
-	std::string target = Poco::toLower(config->getString("yolo.target", "cuda"));
+	std::string bkend = Poco::toLower(config->getString("yolo.backend", ""));
+	std::string target = Poco::toLower(config->getString("yolo.target", ""));
 
 	yolo_net = cv::dnn::readNetFromDarknet(yolo_config_path.toString(), yolo_weight_path.toString());
-	yolo_net.setPreferableBackend(StrToBackend(bkend));
-	yolo_net.setPreferableTarget(StrToTarget(target));
+	if (!bkend.empty()) yolo_net.setPreferableBackend(StrToBackend(bkend));
+	if (!target.empty()) yolo_net.setPreferableTarget(StrToTarget(target));
 	output_layers = yolo_net.getUnconnectedOutLayersNames();
 
 	if (config->has("yolo.analysis_size"))
@@ -84,8 +86,21 @@ int Detector::StrToTarget(const std::string& target)
 	if (target == "myriad") return DNN_TARGET_MYRIAD;
 	if (target == "vulkan") return DNN_TARGET_VULKAN;
 	if (target == "fpga") return DNN_TARGET_FPGA;
+	if (target == "cpu") return DNN_TARGET_CPU;
 
 	return DNN_TARGET_CPU;
+}
+
+void Detector::GetNextFrame(cv::Mat& frame)
+{
+	if (frame_rate_limiter.isNull())
+	{
+		if (!cam.isNull()) *cam >> frame;
+	}
+	else
+	{
+		frame = frame_rate_limiter->GetNextFrame();
+	}
 }
 
 int Detector::StrToBackend(const std::string& bkend)
@@ -96,6 +111,7 @@ int Detector::StrToBackend(const std::string& bkend)
 	if (bkend == "intel_inference") return DNN_BACKEND_INFERENCE_ENGINE;
 	if (bkend == "opencv") return DNN_BACKEND_OPENCV;
 	if (bkend == "vkcom") return DNN_BACKEND_VKCOM;
+	if (bkend == "default") return DNN_BACKEND_DEFAULT;
 	return cv::dnn::DNN_BACKEND_DEFAULT;
 }
 
@@ -136,14 +152,22 @@ void Detector::run()
 	{
 		try
 		{
-			if (cam_location.empty())
+			if (!use_pre_limiter)
 			{
-				cam = new cv::VideoCapture(cam_index);
+				if (cam_location.empty())
+				{
+					cam = new cv::VideoCapture(cam_index);
+				}
+				else
+				{
+					cam = new cv::VideoCapture(cam_location);
+				}
 			}
 			else
 			{
-				cam = new cv::VideoCapture(cam_location);
+				frame_rate_limiter = new FrameRateLimiter(cam_location, cam_index, cam_fps);
 			}
+			
 
 			vector<Detection> detections;
 
@@ -158,11 +182,8 @@ void Detector::run()
 			bool is_new_detection = false;
 			while (!want_to_stop)
 			{
-
-				
-
 				cv::Mat frame;
-				*cam >> frame;
+				GetNextFrame(frame);
 
 				if (frame.empty())
 				{

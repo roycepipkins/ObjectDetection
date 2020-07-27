@@ -166,6 +166,7 @@
   <ItemGroup>
     <ClCompile Include="Detector.cpp" />
     <ClCompile Include="EventFilter.cpp" />
+    <ClCompile Include="FrameRateLimiter.cpp" />
     <ClCompile Include="jsoncpp.cpp" />
     <ClCompile Include="MqttEmitter.cpp" />
     <ClCompile Include="ObjectDetection.cpp" />
@@ -177,6 +178,7 @@
     <ClInclude Include="Detection.h" />
     <ClInclude Include="Detector.h" />
     <ClInclude Include="EventFilter.h" />
+    <ClInclude Include="FrameRateLimiter.h" />
     <ClInclude Include="MqttEmitter.h" />
     <ClInclude Include="ObjectDetection.h" />
     <ClInclude Include="resource.h" />

@@ -7,7 +7,9 @@
 #include <Poco/Util/ConfigurationView.h>
 
 
+
 #include "Detection.h"
+#include "FrameRateLimiter.h"
 
 #include <opencv2/dnn.hpp>
 
@@ -30,6 +32,7 @@ private:
 	Poco::Logger& log;
 	const std::string cam_location;
 	const int cam_index;
+	double cam_fps;
 	int64_t cam_detect_period_us;
 	Poco::SharedPtr<cv::VideoCapture> cam;
 	std::vector<std::string> classes;
@@ -47,5 +50,9 @@ private:
 
 	Poco::Thread detector_thread;
 	volatile bool want_to_stop;
+
+	bool use_pre_limiter;
+	Poco::SharedPtr<FrameRateLimiter> frame_rate_limiter;
+	void GetNextFrame(cv::Mat& frame);
 };
 
