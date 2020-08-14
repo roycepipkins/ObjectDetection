@@ -165,6 +165,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Detector.cpp" />
+    <ClCompile Include="DirectoryFrames.cpp" />
     <ClCompile Include="EventFilter.cpp" />
     <ClCompile Include="FrameRateLimiter.cpp" />
     <ClCompile Include="jsoncpp.cpp" />
@@ -177,8 +178,10 @@
   <ItemGroup>
     <ClInclude Include="Detection.h" />
     <ClInclude Include="Detector.h" />
+    <ClInclude Include="DirectoryFrames.h" />
     <ClInclude Include="EventFilter.h" />
     <ClInclude Include="FrameRateLimiter.h" />
+    <ClInclude Include="FrameSource.h" />
     <ClInclude Include="MqttEmitter.h" />
     <ClInclude Include="ObjectDetection.h" />
     <ClInclude Include="resource.h" />
@@ -188,6 +191,9 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="ObjectDetection.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="TODO.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

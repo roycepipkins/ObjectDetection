@@ -7,14 +7,16 @@
 #include <Poco/Thread.h>
 #include <queue>
 #include <opencv2/videoio.hpp>
+#include "FrameSource.h"
 
-class FrameRateLimiter : public Poco::Runnable
+class FrameRateLimiter : public FrameSource, Poco::Runnable
 {
 public:
-	FrameRateLimiter(const std::string& camera_init_str, const int camera_init_int, const double frameRate);
+	FrameRateLimiter(const int camera_init_int, const double frameRate);
+	FrameRateLimiter(const std::string& camera_init_str, const double frameRate);
 	~FrameRateLimiter();
 
-	cv::Mat GetNextFrame();
+	virtual cv::Mat GetNextFrame();
 
 	void run();
 	void stop();

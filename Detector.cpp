@@ -13,8 +13,14 @@
 #include <fstream>
 #include <iomanip>
 
+//TODO Should move config acquition outside of this class? No fucit
+//TODO Certainly I want to now use FrameSource as the frame input, so this class should be ignorant of the frame source.
 
-Detector::Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco::Util::AbstractConfiguration> config):
+Detector::Detector(
+	const std::string name,
+	Poco::SharedPtr<FrameSource> frameSource,
+	bool showWindows, /*TODO should THIS be a frame source and off load show windows to another class*/
+	Poco::AutoPtr<Poco::Util::AbstractConfiguration> config):
 	src_name(name),
 	log(Poco::Logger::get(name)),
 	cam_location(config->getString("location", "")),
@@ -25,10 +31,10 @@ Detector::Detector(const std::string name, bool showWindows, Poco::AutoPtr<Poco:
 	confidence_threshold((float)config->getDouble("yolo.confidence_threshold", 0.35)),
 	nms_threshold((float)config->getDouble("yolo.nms_threshold", 0.48)),
 	want_to_stop(false),
-	use_pre_limiter(true)
+	frame_source(frameSource)
 {
 	cam_fps = config->getDouble("fps", 0.25);
-	if (cam_fps > 0 && !use_pre_limiter)
+	if (cam_fps > 0)
 		cam_detect_period_us = (int64_t)((1.0 / cam_fps) * 1000000.0);
 	else
 		cam_detect_period_us = 0;
@@ -91,17 +97,7 @@ int Detector::StrToTarget(const std::string& target)
 	return DNN_TARGET_CPU;
 }
 
-void Detector::GetNextFrame(cv::Mat& frame)
-{
-	if (frame_rate_limiter.isNull())
-	{
-		if (!cam.isNull()) *cam >> frame;
-	}
-	else
-	{
-		frame = frame_rate_limiter->GetNextFrame();
-	}
-}
+
 
 int Detector::StrToBackend(const std::string& bkend)
 {
@@ -152,23 +148,6 @@ void Detector::run()
 	{
 		try
 		{
-			if (!use_pre_limiter)
-			{
-				if (cam_location.empty())
-				{
-					cam = new cv::VideoCapture(cam_index);
-				}
-				else
-				{
-					cam = new cv::VideoCapture(cam_location);
-				}
-			}
-			else
-			{
-				frame_rate_limiter = new FrameRateLimiter(cam_location, cam_index, cam_fps);
-			}
-			
-
 			vector<Detection> detections;
 
 			if (isInteractive)
@@ -182,9 +161,8 @@ void Detector::run()
 			bool is_new_detection = false;
 			while (!want_to_stop)
 			{
-				cv::Mat frame;
-				GetNextFrame(frame);
-
+				cv::Mat frame(frame_source->GetNextFrame());
+				
 				if (frame.empty())
 				{
 					log.error("Got an empty frame. Will retry.");

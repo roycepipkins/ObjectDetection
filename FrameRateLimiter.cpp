@@ -2,13 +2,13 @@
 
 #include <opencv2/highgui.hpp>
 
-FrameRateLimiter::FrameRateLimiter(const std::string& camera_init_str, const int camera_init_int, const double frameRate):
-	frame_period_us((int64_t)((1.0/frameRate) * 1000000.0)),
+FrameRateLimiter::FrameRateLimiter(const std::string& camera_init_str, const double frameRate):
+	frame_period_us(frameRate > 0 ? (int64_t)((1.0/frameRate) * 1000000.0) : 0),
 	want_to_stop(false)
 {
 	if (camera_init_str.empty())
 	{
-		cam = new cv::VideoCapture(camera_init_int);
+		throw std::runtime_error("camera location cannot be empty");
 	}
 	else
 	{
@@ -17,6 +17,15 @@ FrameRateLimiter::FrameRateLimiter(const std::string& camera_init_str, const int
 
 	frame_thread.start(*this);
 }
+
+FrameRateLimiter::FrameRateLimiter(const int camera_init_int, const double frameRate) :
+	frame_period_us(frameRate > 0 ? (int64_t)((1.0 / frameRate) * 1000000.0) : 0),
+	want_to_stop(false)
+{
+	cam = new cv::VideoCapture(camera_init_int);
+	frame_thread.start(*this);
+}
+
 
 FrameRateLimiter::~FrameRateLimiter()
 {

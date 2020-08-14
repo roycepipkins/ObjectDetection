@@ -1,8 +1,3 @@
-#include "ObjectDetection.h"
-#include "StringFilter.h"
-#include "MqttEmitter.h"
-#include "URLEmitter.h"
-
 #include <Poco/Path.h>
 #include <Poco/File.h>
 #include <Poco/Logger.h>
@@ -15,15 +10,21 @@
 #include <Poco/BasicEvent.h>
 #include <Poco/String.h>
 
-
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
 
-
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+
+#include "ObjectDetection.h"
+#include "StringFilter.h"
+#include "MqttEmitter.h"
+#include "URLEmitter.h"
+#include "FrameRateLimiter.h"
+#include "DirectoryFrames.h"
+
 
 POCO_SERVER_MAIN(ObjectDetection);
 
@@ -95,7 +96,11 @@ void ObjectDetection::SetupCameras()
         try
         {
             auto camera_config = config().createView("camera." + camera);
-            SharedPtr<Detector> detector = new Detector(camera, isInteractive(), camera_config);
+
+            //TODO here you need to analyize the configuration enough to understand where the frames are coming from.
+            //A frame rate limit, a straight through, or a directory watcher?
+
+            SharedPtr<Detector> detector = new Detector(camera, CreateFrameSource(camera_config), isInteractive(), camera_config);
             detectors[camera] = detector;
         }
         catch (Poco::Exception& e)
@@ -108,6 +113,30 @@ void ObjectDetection::SetupCameras()
         }
         
     }
+}
+
+Poco::SharedPtr<FrameSource> ObjectDetection::CreateFrameSource(Poco::Util::AbstractConfiguration::Ptr config)
+{
+    Poco::SharedPtr<FrameSource> frame_source;
+    string source_type = toLower(config->getString("source_type", "location"));
+    if (source_type == "location")
+    {   
+        frame_source = new FrameRateLimiter(config->getString("location", ""), config->getDouble("fps", 0.25));
+    }
+
+    if (source_type == "webcam")
+    {
+        frame_source = new FrameRateLimiter(config->getInt("index", 0), config->getDouble("fps", 0.25));
+    }
+
+    if (source_type == "directory_watcher")
+    {
+        string location = config->getString("location", "");
+        if (location.empty()) throw Poco::Exception("location can't be empty.");
+        frame_source = new DirectoryFrames(location);
+    }
+
+    return frame_source;
 }
 
 void ObjectDetection::SetupMQTT()

@@ -1,0 +1,2 @@
+Test the new directory frame source
+Write the detection mask GUI, storage, and detection filtration

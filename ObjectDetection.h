@@ -46,5 +46,7 @@ private:
 	Poco::SharedPtr<Poco::LogStream> opencv_cerr;
 
 	cv::utils::logging::LogLevel StrToLogLevel(const std::string& log_level);
+
+	Poco::SharedPtr<FrameSource> CreateFrameSource(Poco::Util::AbstractConfiguration::Ptr config);
 };
 
