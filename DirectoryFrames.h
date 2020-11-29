@@ -14,8 +14,9 @@ public:
 
 	void onItemAdded(const void* sender, const Poco::DirectoryWatcher::DirectoryEvent& directoryEvent);
 	
-	cv::Mat GetNextFrame();
-	void stop();
+	void start() override;
+	cv::Mat GetNextFrame(const int wait_ms = 100) override;
+	void stop() override;
 private:
 	Poco::DirectoryWatcher watcher;
 	Poco::Mutex mu_new_file_que;

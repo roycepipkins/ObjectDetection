@@ -2,11 +2,13 @@
 #include <Poco/SharedPtr.h>
 #include <Poco/Util/ServerApplication.h>
 #include <Poco/LogStream.h>
-#include "Detector.h"
-#include "EventFilter.h"
-#include "MqttEmitter.h"
+
 #include <opencv2/core/utils/logger.hpp>
 
+#include "Detector.h"
+#include "SourceDetectionManager.h"
+#include "EventFilter.h"
+#include "MqttEmitter.h"
 
 class ObjectDetection : public Poco::Util::ServerApplication
 {
@@ -17,20 +19,27 @@ protected:
 
 	void ConfigureLogging();
 
+	void SetupDetector();
 	void SetupCameras();
 	void SetupMQTT();
 	void SetupURLs();
+
+	void StartupDetector();
 	void StartupCameras();
 	void StartupMQTT();
 	void StartupURLs();
 
+	void ShutdownDetector();
 	void ShutdownCameras();
 	void ShutdownMQTT();
 	void ShutdownURLs();
 
-	std::map<std::string, Poco::SharedPtr<Detector>> detectors;
+	
 
 private:
+	Poco::SharedPtr<Detector> detector;
+	std::map<std::string, Poco::AutoPtr<SourceDetectionManager>> managers;
+
 	Poco::SharedPtr<ThreadedDetectionProcessor> mqtt;
 	Poco::SharedPtr<EventFilter> mqtt_filter;
 
@@ -47,6 +56,6 @@ private:
 
 	cv::utils::logging::LogLevel StrToLogLevel(const std::string& log_level);
 
-	Poco::SharedPtr<FrameSource> CreateFrameSource(Poco::Util::AbstractConfiguration::Ptr config);
+	Poco::AutoPtr<FrameSource> CreateFrameSource(Poco::Util::AbstractConfiguration::Ptr config);
 };
 

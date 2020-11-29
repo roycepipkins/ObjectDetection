@@ -43,7 +43,7 @@ MqttEmitter::~MqttEmitter()
 bool MqttEmitter::MqttConnect()
 {
     int rc;
-    log.information("MQTT client connecting...");
+    log.debug("MQTT client connecting...");
     if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS)
     {
         log.error("Failed to connect to MQTT broker, return code %d\n", rc);
@@ -51,7 +51,7 @@ bool MqttEmitter::MqttConnect()
     }
     else
     {
-        log.information("Connected to MQTT Broker");
+        log.debug("Connected to MQTT Broker");
         return true;
     }
 }
@@ -65,22 +65,13 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
     
 
     //rich detection publication
-    
-
-    
     string full_detection_topic = prefix + "/full_detection_array";
     string payload = getDetectionsAsJson(detections);
 
-
-    bool mqtt_connected = false;
+    bool mqtt_connected = MqttConnect();
 
     if (!payload.empty())
     {
-
-        if (!mqtt_connected) mqtt_connected = MqttConnect();
-        
-        
-
 
         MQTTClient_message pubmsg = MQTTClient_message_initializer;
         MQTTClient_deliveryToken token;
@@ -93,6 +84,10 @@ void MqttEmitter::processDetection(std::vector<Detection>& detections)
         if (MQTTCLIENT_SUCCESS != MQTTClient_waitForCompletion(client, token, 1000))
         {
             log.error("Failed to publish MQTT message. Please check server and configured credentials");
+        }
+        else
+        {
+            log.information("Published to " + full_detection_topic);
         }
     }
     

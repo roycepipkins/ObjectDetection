@@ -1,2 +1,3 @@
 Test the new directory frame source
 Write the detection mask GUI, storage, and detection filtration
+	Skip the mask GUI. Let them specifiy a mask image. They can use GIMP or whatever.

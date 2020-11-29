@@ -167,10 +167,11 @@
     <ClCompile Include="Detector.cpp" />
     <ClCompile Include="DirectoryFrames.cpp" />
     <ClCompile Include="EventFilter.cpp" />
-    <ClCompile Include="FrameRateLimiter.cpp" />
     <ClCompile Include="jsoncpp.cpp" />
     <ClCompile Include="MqttEmitter.cpp" />
     <ClCompile Include="ObjectDetection.cpp" />
+    <ClCompile Include="OverWritingFrameGrabber.cpp" />
+    <ClCompile Include="SourceDetectionManager.cpp" />
     <ClCompile Include="StringFilter.cpp" />
     <ClCompile Include="ThreadedDetectionProcessor.cpp" />
     <ClCompile Include="URLEmitter.cpp" />
@@ -180,11 +181,12 @@
     <ClInclude Include="Detector.h" />
     <ClInclude Include="DirectoryFrames.h" />
     <ClInclude Include="EventFilter.h" />
-    <ClInclude Include="FrameRateLimiter.h" />
     <ClInclude Include="FrameSource.h" />
     <ClInclude Include="MqttEmitter.h" />
     <ClInclude Include="ObjectDetection.h" />
+    <ClInclude Include="OverWritingFrameGrabber.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="SourceDetectionManager.h" />
     <ClInclude Include="StringFilter.h" />
     <ClInclude Include="ThreadedDetectionProcessor.h" />
     <ClInclude Include="URLEmitter.h" />

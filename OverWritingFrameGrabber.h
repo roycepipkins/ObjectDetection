@@ -9,24 +9,22 @@
 #include <opencv2/videoio.hpp>
 #include "FrameSource.h"
 
-class FrameRateLimiter : public FrameSource, Poco::Runnable
+class OverWritingFrameGrabber : public FrameSource, Poco::Runnable
 {
 public:
-	FrameRateLimiter(const int camera_init_int, const double frameRate);
-	FrameRateLimiter(const std::string& camera_init_str, const double frameRate);
-	~FrameRateLimiter();
+	OverWritingFrameGrabber(const int camera_init_int);
+	OverWritingFrameGrabber(const std::string& camera_init_str);
+	~OverWritingFrameGrabber();
 
-	virtual cv::Mat GetNextFrame();
+	virtual cv::Mat GetNextFrame(const int wait_ms = 100) override;
 
-	void run();
-	void stop();
+	void start() override;
+	void run() override;
+	void stop() override;
 private:
 	Poco::SharedPtr<cv::VideoCapture> cam;
-	
-	int64_t frame_period_us;
-	Poco::Timestamp frame_time;
 	Poco::Event frame_available;
-	Poco::Mutex mu_frame_queue;
+	Poco::Mutex mu_frame;
 	cv::Mat frame;
 
 	Poco::Thread frame_thread;

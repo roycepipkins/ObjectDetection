@@ -18,17 +18,24 @@ void DirectoryFrames::onItemAdded(const void* sender, const Poco::DirectoryWatch
 	new_file_que.push(directoryEvent.item);
 	file_added.set();
 }
+
+void DirectoryFrames::start()
+{
+	want_to_stop = false;
+}
+
 void DirectoryFrames::stop()
 {
 	want_to_stop = true;
+	//TODO remove the delegate?
 }
 
-cv::Mat DirectoryFrames::GetNextFrame()
+cv::Mat DirectoryFrames::GetNextFrame(const int wait_ms)
 {
 	cv::Mat empty_frame;
 	while (!want_to_stop)
 	{
-		if (file_added.tryWait(100))
+		if (file_added.tryWait(wait_ms))
 		{
 			File added_file;
 			{
@@ -42,7 +49,6 @@ cv::Mat DirectoryFrames::GetNextFrame()
 				return cv::imread(added_file.path());
 			}
 		}
-		cv::waitKey(1);
 	}
 
 	return empty_frame;

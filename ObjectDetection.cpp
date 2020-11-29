@@ -22,7 +22,7 @@
 #include "StringFilter.h"
 #include "MqttEmitter.h"
 #include "URLEmitter.h"
-#include "FrameRateLimiter.h"
+#include "OverWritingFrameGrabber.h"
 #include "DirectoryFrames.h"
 
 
@@ -54,10 +54,12 @@ int ObjectDetection::main(const std::vector<std::string>& args)
     
     try
     {
+        SetupDetector();
         SetupCameras();
         SetupMQTT();
         SetupURLs();
 
+        StartupDetector();
         StartupMQTT();
         StartupURLs();
         StartupCameras();
@@ -67,6 +69,7 @@ int ObjectDetection::main(const std::vector<std::string>& args)
         ShutdownCameras();
         ShutdownMQTT();
         ShutdownURLs();
+        ShutdownDetector();
 
     }
     catch (Poco::Exception& e)
@@ -85,9 +88,13 @@ int ObjectDetection::main(const std::vector<std::string>& args)
 }
 
 
-void ObjectDetection::SetupCameras()
+void ObjectDetection::SetupDetector()
 {
-    
+    detector = new Detector(config());
+}
+
+void ObjectDetection::SetupCameras()
+{   
     vector<string> cameras;
     config().keys("camera", cameras);
 
@@ -97,11 +104,13 @@ void ObjectDetection::SetupCameras()
         {
             auto camera_config = config().createView("camera." + camera);
 
-            //TODO here you need to analyize the configuration enough to understand where the frames are coming from.
-            //A frame rate limit, a straight through, or a directory watcher?
-
-            SharedPtr<Detector> detector = new Detector(camera, CreateFrameSource(camera_config), isInteractive(), camera_config);
-            detectors[camera] = detector;
+            AutoPtr<SourceDetectionManager> manager = new SourceDetectionManager(
+                                                                camera, 
+                                                                CreateFrameSource(camera_config), 
+                                                                isInteractive(), 
+                                                                *detector,
+                                                                camera_config);
+            managers[camera] = manager;
         }
         catch (Poco::Exception& e)
         {
@@ -115,28 +124,23 @@ void ObjectDetection::SetupCameras()
     }
 }
 
-Poco::SharedPtr<FrameSource> ObjectDetection::CreateFrameSource(Poco::Util::AbstractConfiguration::Ptr config)
+Poco::AutoPtr<FrameSource> ObjectDetection::CreateFrameSource(Poco::Util::AbstractConfiguration::Ptr config)
 {
-    Poco::SharedPtr<FrameSource> frame_source;
-    string source_type = toLower(config->getString("source_type", "location"));
-    if (source_type == "location")
+    if (config->has("url"))
     {   
-        frame_source = new FrameRateLimiter(config->getString("location", ""), config->getDouble("fps", 0.25));
+        string url = config->getString("url");
+        if (url.empty()) throw Poco::Exception("url can't be empty if property is listed");
+        return new OverWritingFrameGrabber(url);
     }
 
-    if (source_type == "webcam")
+    if (config->has("intake_directory"))
     {
-        frame_source = new FrameRateLimiter(config->getInt("index", 0), config->getDouble("fps", 0.25));
+        string intake_directory = config->getString("intake_directory");
+        if (intake_directory.empty()) throw Poco::Exception("intake_directory can't be empty if property is listed");
+        return new DirectoryFrames(intake_directory);
     }
 
-    if (source_type == "directory_watcher")
-    {
-        string location = config->getString("location", "");
-        if (location.empty()) throw Poco::Exception("location can't be empty.");
-        frame_source = new DirectoryFrames(location);
-    }
-
-    return frame_source;
+    return new OverWritingFrameGrabber(max(config->getInt("webcam", 0), 0));
 }
 
 void ObjectDetection::SetupMQTT()
@@ -179,9 +183,9 @@ void ObjectDetection::SetupMQTT()
 
                 mqtt_filter = new EventFilter(mqtt_class_filters, mqtt_source_filters);
 
-                for (auto& [name, detector] : detectors)
+                for (auto& [name, manager] : managers)
                 {
-                    detector->detectionEvent += delegate(mqtt_filter.get(), &EventFilter::onDetectionEvent);
+                    manager->detectionEvent += delegate(mqtt_filter.get(), &EventFilter::onDetectionEvent);
                 }
 
                 mqtt_filter->filteredDetectionEvent += delegate(mqtt.get(), &ThreadedDetectionProcessor::onDetection);
@@ -189,9 +193,9 @@ void ObjectDetection::SetupMQTT()
             }
             else
             {
-                for (auto& [name, detector] : detectors)
+                for (auto& [name, manager] : managers)
                 {
-                    detector->detectionEvent += delegate(mqtt.get(), &ThreadedDetectionProcessor::onDetection);
+                    manager->detectionEvent += delegate(mqtt.get(), &ThreadedDetectionProcessor::onDetection);
                 }
             }
         }
@@ -248,18 +252,18 @@ void ObjectDetection::SetupURLs()
 
                 eventProcessor.url_filter = new EventFilter(url_class_filters, url_source_filters);
 
-                for (auto& [name, detector] : detectors)
+                for (auto& [name, manager] : managers)
                 {
-                    detector->detectionEvent += delegate(eventProcessor.url_filter.get(), &EventFilter::onDetectionEvent);
+                    manager->detectionEvent += delegate(eventProcessor.url_filter.get(), &EventFilter::onDetectionEvent);
                 }
 
                 eventProcessor.url_filter->filteredDetectionEvent += delegate(eventProcessor.url.get(), &ThreadedDetectionProcessor::onDetection);
             }
             else
             {
-                for (auto& [name, detector] : detectors)
+                for (auto& [name, manager] : managers)
                 {
-                    detector->detectionEvent += delegate(eventProcessor.url.get(), &ThreadedDetectionProcessor::onDetection);
+                    manager->detectionEvent += delegate(eventProcessor.url.get(), &ThreadedDetectionProcessor::onDetection);
                 }
             }
 
@@ -276,11 +280,16 @@ void ObjectDetection::SetupURLs()
     }
 }
 
+void ObjectDetection::StartupDetector()
+{
+    detector->start();
+}
+
 void ObjectDetection::StartupCameras()
 {
-    for (auto& [name, detector] : detectors)
+    for (auto& [name, manager] : managers)
     {
-        detector->start();
+        manager->start();
     }
 }
 
@@ -297,11 +306,16 @@ void ObjectDetection::StartupURLs()
     }
 }
 
+void ObjectDetection::ShutdownDetector()
+{
+    detector->stop();
+}
+
 void ObjectDetection::ShutdownCameras()
 {
-    for (auto& [name, detector] : detectors)
+    for (auto& [name, manager] : managers)
     {
-        detector->stop();
+        manager->stop();
     }
 }
 
