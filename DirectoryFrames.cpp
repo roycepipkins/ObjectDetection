@@ -1,6 +1,8 @@
 #include "DirectoryFrames.h"
 #include <Poco/Delegate.h>
 #include <Poco/Timestamp.h>
+#include <Poco/FileStream.h>
+#include <Poco/Logger.h>
 #include <opencv2/opencv.hpp>
 
 using namespace Poco;
@@ -46,10 +48,35 @@ cv::Mat DirectoryFrames::GetNextFrame(const int wait_ms)
 
 			if (added_file.exists())
 			{
-				return cv::imread(added_file.path());
+				if (WaitForFileToComplete(added_file))
+					return cv::imread(added_file.path());
 			}
 		}
+		else
+		{
+			cv::waitKey(1);
+		}
+		
 	}
 
 	return empty_frame;
+}
+
+bool DirectoryFrames::WaitForFileToComplete(const Poco::File& file, const int timeout_ms)
+{
+	Timestamp timeout;
+	while (!want_to_stop && timeout.elapsed() < timeout_ms * 1000)
+	{
+		try
+		{
+			FileStream file_lock(file.path());
+			return true;
+		}
+		catch (Poco::Exception& e)
+		{
+			Thread::sleep(100);
+		}
+		cv::waitKey(1);
+	}
+	return false;
 }

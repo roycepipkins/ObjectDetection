@@ -23,5 +23,6 @@ private:
 	std::queue<Poco::File> new_file_que;
 	Poco::Event file_added;
 	volatile bool want_to_stop;
+	bool WaitForFileToComplete(const Poco::File& file, const int timeout_ms = 10000);
 };
 

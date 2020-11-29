@@ -137,6 +137,19 @@ Poco::AutoPtr<FrameSource> ObjectDetection::CreateFrameSource(Poco::Util::Abstra
     {
         string intake_directory = config->getString("intake_directory");
         if (intake_directory.empty()) throw Poco::Exception("intake_directory can't be empty if property is listed");
+        if (!File(intake_directory).exists())
+        {
+            Path intake_path(Poco::Util::Application::instance().config().getString("application.dir"));
+            intake_path.append(intake_directory);
+            if (File(intake_path).exists())
+            {
+                intake_directory = intake_path.toString();
+            }
+            else
+            {
+                throw Poco::Exception("intake_directory must exist.");
+            }
+        }
         return new DirectoryFrames(intake_directory);
     }
 

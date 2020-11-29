@@ -28,8 +28,8 @@ SourceDetectionManager::SourceDetectionManager(
 	isInteractive(showWindows),
 	frame_source(frameSource),
 	detector(objectDetector),
-	confidence_threshold((float)config->getDouble("yolo.confidence_threshold", 0.35)),
-	nms_threshold((float)config->getDouble("yolo.nms_threshold", 0.48)),
+	confidence_threshold((float)config->getDouble("confidence_threshold", 0.35)),
+	nms_threshold((float)config->getDouble("nms_threshold", 0.48)),
 	want_to_stop(false)
 	
 {
@@ -108,7 +108,7 @@ void SourceDetectionManager::management()
 	{
 		try
 		{
-			vector<Detection> detections;
+			Detector::DetectionResult detection_result;
 
 			if (isInteractive)
 			{
@@ -117,7 +117,6 @@ void SourceDetectionManager::management()
 
 
 			Poco::Timestamp detection_timer;
-			ostringstream buf;
 			bool is_new_detection = false;
 			bool detection_in_progress = false;
 			uint64_t detection_job_id = 0;
@@ -153,10 +152,10 @@ void SourceDetectionManager::management()
 				}
 				else
 				{	
-					optional<vector<Detection>> possible_detection = detector.GetDetectionJobIfComplete(detection_job_id);
+					auto possible_detection = detector.GetDetectionJobIfComplete(detection_job_id);
 					if (possible_detection.has_value())
 					{
-						detections = possible_detection.value();
+						detection_result = possible_detection.value();
 						is_new_detection = true;
 						detection_in_progress = false;	
 					}
@@ -166,7 +165,7 @@ void SourceDetectionManager::management()
 
 				if (is_new_detection)
 				{
-					detectionEvent.notify(this, detections);
+					detectionEvent.notify(this, detection_result.detections);
 					is_new_detection = false;
 				}
 
@@ -174,7 +173,7 @@ void SourceDetectionManager::management()
 				if (isInteractive)
 				{
 
-					for (auto& detection : detections)
+					for (auto& detection : detection_result.detections)
 					{
 						if (!detection.is_null) 
 							drawPred(detection.detection_class, detection.confidence,
@@ -182,7 +181,9 @@ void SourceDetectionManager::management()
 								detection.bounding_box.x + detection.bounding_box.width, detection.bounding_box.y + detection.bounding_box.height, frame);
 					}
 
-					putText(frame, buf.str(), Point(10, 30), FONT_HERSHEY_PLAIN, 2.0, Scalar(0, 0, 255), 2, LINE_AA);
+					stringstream msg;
+					msg << "Detect Time: " << setprecision(3) << (detection_result.detection_time_us * 0.000001);
+					putText(frame, msg.str(), Point(10, 30), FONT_HERSHEY_PLAIN, 2.0, Scalar(0, 0, 255), 2, LINE_AA);
 					cv::imshow(src_name, frame);
 					waitKey(1);
 				}

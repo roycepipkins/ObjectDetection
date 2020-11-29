@@ -23,9 +23,9 @@ Detector::Detector(const Poco::Util::AbstractConfiguration& config) :
 	yolo_config_path.append("yolo-coco");
 	Poco::Path yolo_weight_path(yolo_config_path);
 	Poco::Path coco_names_path(yolo_config_path);
-	yolo_config_path.append(config.getString("yolo.config", "yolov4-leaky-416.cfg"));
-	yolo_weight_path.append(config.getString("yolo.weights",  "yolov4-leaky-416.weights"));
-	coco_names_path.append(config.getString("yolo.coco_names", "coco.names"));
+	yolo_config_path.append(config.getString("detector.config", "yolov4-leaky-416.cfg"));
+	yolo_weight_path.append(config.getString("detector.weights",  "yolov4-leaky-416.weights"));
+	coco_names_path.append(config.getString("detector.coco_names", "coco.names"));
 
 	std::ifstream ifs(coco_names_path.toString().c_str());
 	if (!ifs.is_open())
@@ -39,15 +39,15 @@ Detector::Detector(const Poco::Util::AbstractConfiguration& config) :
 		classes.push_back(line);
 	}
 
-	std::string bkend = Poco::toLower(config.getString("yolo.backend", ""));
-	std::string target = Poco::toLower(config.getString("yolo.target", ""));
+	std::string bkend = Poco::toLower(config.getString("detector.backend", ""));
+	std::string target = Poco::toLower(config.getString("detector.target", ""));
 
 	yolo_net = cv::dnn::readNetFromDarknet(yolo_config_path.toString(), yolo_weight_path.toString());
 	if (!bkend.empty()) yolo_net.setPreferableBackend(StrToBackend(bkend));
 	if (!target.empty()) yolo_net.setPreferableTarget(StrToTarget(target));
 	output_layers = yolo_net.getUnconnectedOutLayersNames();
 
-	if (config.has("yolo.analysis_size"))
+	if (config.has("detector.analysis_size"))
 	{
 		auto asize = config.getInt("yolo.analysis_size", 416);
 		analysis_size = cv::Size(asize, asize);
@@ -55,7 +55,7 @@ Detector::Detector(const Poco::Util::AbstractConfiguration& config) :
 
 	use_low_priority = (StrToBackend(bkend) == cv::dnn::DNN_BACKEND_DEFAULT &&
 		StrToTarget(target) == cv::dnn::DNN_TARGET_CPU);
-	use_low_priority = config.getBool("yolo.low_priority", use_low_priority);
+	use_low_priority = config.getBool("detector.low_priority", use_low_priority);
 }
 
 Detector::~Detector()
@@ -102,7 +102,7 @@ uint64_t Detector::SubmitDetectionJob(const cv::Mat frame, const std::string src
 	return job_id;
 }
 
-std::optional<std::vector<Detection>> Detector::GetDetectionJobIfComplete(const uint64_t job_id)
+std::optional<Detector::DetectionResult> Detector::GetDetectionJobIfComplete(const uint64_t job_id)
 {
 	Poco::ScopedLock<Poco::Mutex> locker(mu_job_output_map);
 	auto it = job_output_map.find(job_id);
@@ -110,7 +110,7 @@ std::optional<std::vector<Detection>> Detector::GetDetectionJobIfComplete(const 
 	{
 		return it->second;
 	}
-	return std::optional<std::vector<Detection>>();
+	return std::optional<DetectionResult>();
 }
 
 
@@ -134,10 +134,13 @@ void Detector::run()
 				job = job_queue.front();
 				job_queue.pop();
 			}
-			auto detection = detect(job.frame, job.src_name, job.confidence_threshold, job.nms_threshold);
+			Poco::Timestamp detection_timer;
+			auto detections = detect(job.frame, job.src_name, job.confidence_threshold, job.nms_threshold);
+			auto time_to_detect = detection_timer.elapsed();
+			DetectionResult detection_result = { detections, time_to_detect };
 			{
 				ScopedLock<Mutex> locker(mu_job_output_map);
-				job_output_map[job.job_id] = detection;
+				job_output_map[job.job_id] = detection_result;
 			}
 		}
 	}

@@ -28,8 +28,16 @@ public:
 	void run();
 	void stop();
 
+	struct DetectionResult
+	{
+		std::vector<Detection> detections;
+		int64_t detection_time_us;
+	};
+
 	uint64_t SubmitDetectionJob(const cv::Mat frame, const std::string src_name, const float confidence_threshold, const float nms_threshold);
-	std::optional<std::vector<Detection>> GetDetectionJobIfComplete(const uint64_t job_id);
+	std::optional<DetectionResult> GetDetectionJobIfComplete(const uint64_t job_id);
+
+
 
 private:
 	volatile bool want_to_stop;
@@ -62,7 +70,9 @@ private:
 	Poco::Thread job_thread;
 	bool use_low_priority;
 
+	
+
 	Poco::Mutex mu_job_output_map;
-	std::map<uint64_t, std::vector<Detection>> job_output_map;
+	std::map<uint64_t, DetectionResult> job_output_map;
 };
 
